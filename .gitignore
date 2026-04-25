@@ -1,0 +1,55 @@
+### Gradle ###
+.gradle/
+.gradle-user-home/
+build/
+**/build/
+
+# Keep Gradle Wrapper
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+
+### Kotlin / JVM ###
+.kotlin/
+*.class
+*.jar
+*.war
+*.ear
+
+### Eclipse / STS ###
+.apt_generated/
+.factorypath
+.classpath
+.project
+.settings/
+.springBeans
+.sts4-cache/
+bin/
+**/bin/
+
+### IntelliJ IDEA ###
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+**/out/
+
+### VS Code ###
+.vscode/
+
+### Logs ###
+*.log
+hs_err_pid*
+replay_pid*
+
+### OS ###
+.DS_Store
+Thumbs.db
+
+### Local / Private ###
+*.local
+.env
+.env.*
+/private/
+/.codex/
+AGENTS.md
