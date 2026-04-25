@@ -3,9 +3,11 @@
 
 [versions]
 guava = "33.5.0-jre"
+jackson = "2.18.4"
 
 [libraries]
 guava = { module = "com.google.guava:guava", version.ref = "guava" }
+jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind", version.ref = "jackson" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version = "2.3.0" }
