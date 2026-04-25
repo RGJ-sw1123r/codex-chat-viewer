@@ -111,6 +111,35 @@ The project uses the included Gradle Wrapper, so you do not need to install Grad
 gradlew.bat run
 ```
 
+## Manual Windows Release Zip
+
+Codex Chat Viewer is intended to ship as a portable Windows zip, not as an installer.
+
+Build the local release artifact with:
+
+```cmd
+gradlew.bat packageWindowsReleaseZip
+```
+
+The generated files are written under the build output directory:
+
+```text
+app/build/release/windows/app-image/
+app/build/release/windows/codex-chat-viewer-windows-x64.zip
+```
+
+The zip is intended for a manual GitHub Releases upload after a local check. The expected user flow is:
+
+- build `codex-chat-viewer-windows-x64.zip` locally
+- extract the zip
+- run `Codex Chat Viewer.exe`
+- verify the app opens without a separate Java install
+- upload the zip to GitHub Releases manually
+
+`jpackage` is required for the release build because the release zip bundles a Java runtime. If `jpackage` is not already on `PATH`, point the build at a full JDK by setting `JPACKAGE_HOME` or `JPACKAGE_EXECUTABLE`.
+
+The source-code zip from GitHub's green `Code` button is not the same as the portable release zip. End users should download the release asset instead of the source archive.
+
 ## Development Notes
 
 Codex Chat Viewer reads local Codex CLI session logs from paths such as:
@@ -148,7 +177,7 @@ Extract folder
 Run Codex Chat Viewer.exe
 ```
 
-A full installer is not the first target.
+A full installer is not the first target. The portable zip should include a bundled runtime so Java does not need to be installed separately on the target machine.
 
 ## License
 
