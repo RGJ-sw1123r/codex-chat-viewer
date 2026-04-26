@@ -43,7 +43,8 @@ object ChatRenderer {
 
 			appendLine(separator)
 			appendLine()
-			appendLine("Parsed messages: ${parsedChatLog.parsedMessages}")
+			appendLine("Parsed candidates: ${parsedChatLog.parsedCandidates}")
+			appendLine("Visible entries: ${parsedChatLog.entries.size}")
 			appendLine("Ignored lines: ${parsedChatLog.ignoredLines}")
 			appendLine("Malformed lines: ${parsedChatLog.malformedLines}")
 		}.trimEnd()

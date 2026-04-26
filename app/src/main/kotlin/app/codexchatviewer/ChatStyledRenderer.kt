@@ -78,7 +78,8 @@ object ChatStyledRenderer {
 
 		appendLine(document, separator, systemColor)
 		appendBlankLine(document)
-		appendLine(document, "Parsed messages: ${parsedChatLog.parsedMessages}", metadataColor)
+		appendLine(document, "Parsed candidates: ${parsedChatLog.parsedCandidates}", metadataColor)
+		appendLine(document, "Visible entries: ${parsedChatLog.entries.size}", metadataColor)
 		appendLine(document, "Ignored lines: ${parsedChatLog.ignoredLines}", metadataColor)
 		appendLine(document, "Malformed lines: ${parsedChatLog.malformedLines}", metadataColor)
 		viewer.caretPosition = 0

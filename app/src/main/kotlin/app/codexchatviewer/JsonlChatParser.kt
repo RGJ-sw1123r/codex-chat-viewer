@@ -11,7 +11,7 @@ private val objectMapper = ObjectMapper()
 
 data class ParsedChatLog(
 	val entries: List<RenderedEntry>,
-	val parsedMessages: Int,
+	val parsedCandidates: Int,
 	val ignoredLines: Int,
 	val malformedLines: Int,
 	val observedEventCounts: Map<String, Int>
@@ -83,7 +83,7 @@ object JsonlChatParser {
 			.onMalformedInput(CodingErrorAction.REPLACE)
 			.onUnmappableCharacter(CodingErrorAction.REPLACE)
 
-		var parsedMessages = 0
+		var parsedCandidates = 0
 		var ignoredLines = 0
 		var malformedLines = 0
 		val candidates = mutableListOf<ParsedCandidate>()
@@ -93,7 +93,6 @@ object JsonlChatParser {
 			lines.forEach { rawLine ->
 				val line = rawLine.trim()
 				if (line.isEmpty()) {
-					ignoredLines += 1
 					return@forEach
 				}
 
@@ -111,7 +110,7 @@ object JsonlChatParser {
 					ignoredLines += 1
 				} else {
 					candidates += extractedCandidates
-					parsedMessages += extractedCandidates.size
+					parsedCandidates += extractedCandidates.size
 				}
 			}
 		}
@@ -120,7 +119,7 @@ object JsonlChatParser {
 
 		return ParsedChatLog(
 			entries = entries,
-			parsedMessages = parsedMessages,
+			parsedCandidates = parsedCandidates,
 			ignoredLines = ignoredLines,
 			malformedLines = malformedLines,
 			observedEventCounts = observedEventCounts.toMap()
