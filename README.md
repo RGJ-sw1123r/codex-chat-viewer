@@ -12,7 +12,7 @@ Codex CLI is useful, but its local JSONL session logs are not easy to read as-is
 
 This project makes those logs easier to review by separating human prompts, Codex responses, tool calls, tool results, task context, and session metadata in a readable local UI.
 
-It is not meant to replace Codex CLI. It is meant to make local Codex sessions easier to inspect, review, document, and revisit after the work is done.
+It works as a companion viewer for Codex CLI sessions, making local session logs easier to inspect, review, document, and revisit after the work is done.
 
 ## Important Note About Codex Rollout Logs
 
@@ -110,14 +110,14 @@ The app currently focuses on:
 
 ### Planned
 
-- Session list browser for local Codex session directories
-- Live tail / watch mode for active Codex sessions
-- Optional collapse / expand behavior for long conversation blocks
-- Additional visual themes:
+- Collapse / expand for long conversation blocks
+- Theme rendering:
+  - Terminal Style refinement
   - Markdown Style
   - DM Style
   - Talk Style
   - Messenger Style
+- Live tail / watch mode for active Codex sessions
 - Optional support for a stable official Codex session export format, if one becomes available
 
 ## Markdown Export
