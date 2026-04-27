@@ -2,38 +2,39 @@
 
 A local desktop viewer for OpenAI Codex CLI session logs.
 
-Codex Chat Viewer opens local Codex CLI JSONL session logs, typically named `rollout-*.jsonl`, and turns them into readable, filterable, terminal-style conversations that can also be exported to Markdown.
+Codex Chat Viewer opens local Codex CLI JSONL session logs, usually named `rollout-*.jsonl`, and turns them into readable, filterable, terminal-style conversations that you can also export to Markdown.
 
 > Status: usable MVP
 
 ## Why?
 
-Codex CLI is useful, but its local JSONL session logs are not easy to read directly.
+Codex CLI is useful, but its local JSONL session logs are not easy to read as-is.
 
-This project aims to make those logs easier to review by separating human prompts, Codex responses, tool calls, tool results, task context, and session metadata into a readable local UI.
+This project makes those logs easier to review by separating human prompts, Codex responses, tool calls, tool results, task context, and session metadata in a readable local UI.
 
-The goal is not to replace Codex CLI itself. The goal is to make local Codex sessions easier to inspect, review, document, and reuse after the work is done.
+It is not meant to replace Codex CLI. It is meant to make local Codex sessions easier to inspect, review, document, and revisit after the work is done.
 
 ## Important Note About Codex Rollout Logs
 
 Codex Chat Viewer reads local Codex CLI JSONL session logs. These are typically named `rollout-*.jsonl`.
 
-These files are treated as an observed local session format, not as an official stable public export schema.
+These files are treated as an observed local session format, not as an official stable public export format.
 
-This means the parser is based on rollout structures currently observed in local Codex CLI logs, and those structures may change in future Codex CLI versions. The file picker accepts `*.jsonl` files, but the viewer is designed around these observed Codex rollout log shapes.
+The parser is based on rollout structures currently seen in local Codex CLI logs, and those structures may change in future Codex CLI versions. The file picker accepts `*.jsonl` files, but the viewer is designed around these observed rollout log shapes.
 
 If OpenAI later provides a stable official session export format, this project may add support for it as a separate input adapter.
 
 ## What It Does
 
-Codex Chat Viewer is designed for developers who want to review their local Codex CLI sessions without reading raw JSONL logs.
+Codex Chat Viewer is for developers who want to review local Codex CLI sessions without reading raw JSONL logs.
 
 The app currently focuses on:
 
 - opening local Codex rollout logs
 - rendering readable conversation blocks
-- distinguishing who or what produced each block
+- showing who or what produced each block
 - filtering noisy sections such as tool calls, tool results, or metadata
+- searching within the currently rendered transcript
 - exporting the currently visible filtered transcript to Markdown
 - keeping everything local
 
@@ -78,6 +79,15 @@ The app currently focuses on:
   - RESULT
   - META
 - Cached parsed entries with filter-based re-rendering
+- In-view transcript search with `Ctrl+F`
+- Case-insensitive match highlighting for the currently rendered transcript
+- Previous / next match navigation:
+  - `Enter` for next
+  - `Shift+Enter` for previous
+  - wraps around from the last result back to the first
+- Search state resets when opening a new JSONL file
+- Search highlights are recalculated after filter changes
+- Search highlights do not affect Markdown export
 - Footer stats:
   - parsed candidates
   - visible entries
@@ -100,7 +110,6 @@ The app currently focuses on:
 
 ### Planned
 
-- Search within the opened session
 - Session list browser for local Codex session directories
 - Live tail / watch mode for active Codex sessions
 - Optional collapse / expand behavior for long conversation blocks
@@ -115,9 +124,11 @@ The app currently focuses on:
 
 The Markdown export feature saves the transcript currently visible in the viewer.
 
-This means the export respects the current filter icon state. If a message type is hidden in the viewer, it is not included in the exported Markdown file.
+The export respects the current filter icon state. If a message type is hidden in the viewer, it is not included in the exported Markdown file.
 
-The exported file keeps the terminal-style transcript format instead of converting the conversation into a polished article-style Markdown document.
+Search highlights and the current search query do not affect the exported Markdown output.
+
+The exported file keeps the terminal-style transcript format instead of turning the conversation into a polished article-style Markdown document.
 
 Example shape:
 
@@ -143,13 +154,26 @@ Session ID: xxxx
 ```
 ````
 
-When exporting, the app suggests a Markdown filename based on the selected JSONL file. If a matching `.md` file already exists, the app can suggest a non-conflicting filename such as `name (1).md`. If the user explicitly selects an existing file, the app asks before overwriting it.
+When exporting, the app suggests a Markdown filename based on the selected JSONL file. If a matching `.md` file already exists, the app suggests a non-conflicting filename such as `name (1).md`. If you explicitly select an existing file, the app asks before overwriting it.
 
 After a successful export, Windows File Explorer opens with the exported `.md` file selected.
 
+## Search
+
+Codex Chat Viewer includes in-view search for the text currently rendered in the main transcript area.
+
+- Press `Ctrl+F` to open the search bar.
+- Press `Ctrl+F` again or `Esc` to close it.
+- Type to highlight matching text in the currently visible transcript.
+- Press `Enter` to move to the next match.
+- Press `Shift+Enter` to move to the previous match.
+- Search is case-insensitive by default.
+
+Search works on the currently rendered transcript, not on hidden filtered entries. If a section is hidden by the filter toggles, it is not searched until it is visible again.
+
 ## Screenshots
 
-Coming soon.
+![Codex Chat Viewer main window](docs/images/codex-chat-viewer-main.png)
 
 ## Requirements
 
@@ -169,7 +193,7 @@ gradlew.bat run
 
 ## Manual Windows Release Zip
 
-Codex Chat Viewer is intended to ship as a portable Windows zip, not as an installer.
+Codex Chat Viewer is intended to ship as a portable Windows zip, not as a full installer.
 
 Build the local release artifact with:
 
@@ -184,7 +208,7 @@ app/build/release/windows/app-image/
 app/build/release/windows/codex-chat-viewer-windows-x64.zip
 ```
 
-The zip is intended for a manual GitHub Releases upload after a local check. The expected user flow is:
+The zip is intended for manual upload to GitHub Releases after a local check. The expected user flow is:
 
 - build `codex-chat-viewer-windows-x64.zip` locally
 - extract the zip
@@ -192,7 +216,7 @@ The zip is intended for a manual GitHub Releases upload after a local check. The
 - verify the app opens without a separate Java install
 - upload the zip to GitHub Releases manually
 
-`jpackage` is required for the release build because the release zip bundles a Java runtime. If `jpackage` is not already on `PATH`, point the build at a full JDK by setting `JPACKAGE_HOME` or `JPACKAGE_EXECUTABLE`.
+`jpackage` is required for the release build because the release zip bundles a Java runtime. If `jpackage` is not already on `PATH`, point the build to a full JDK by setting `JPACKAGE_HOME` or `JPACKAGE_EXECUTABLE`.
 
 The source-code zip from GitHub's green `Code` button is not the same as the portable release zip. End users should download the release asset instead of the source archive.
 
@@ -227,7 +251,7 @@ This is a local-first utility.
 
 ## Release Direction
 
-The intended release direction is a portable Windows zip:
+The intended release format is a portable Windows zip:
 
 ```text
 Download zip
