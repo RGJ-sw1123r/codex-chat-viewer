@@ -11,7 +11,7 @@ class ChatEntryFilterTest {
 
 		val filtered = parsed.filtered(ChatEntryFilter(showYou = false))
 
-		assertEquals(parsed.parsedMessages, filtered.parsedMessages)
+		assertEquals(parsed.parsedCandidates, filtered.parsedCandidates)
 		assertEquals(parsed.ignoredLines, filtered.ignoredLines)
 		assertEquals(parsed.malformedLines, filtered.malformedLines)
 		assertEquals(7, parsed.entries.size)
@@ -73,7 +73,7 @@ class ChatEntryFilterTest {
 				RenderedEntry(RenderedEntryKind.TOOL_RESULT, "Exit code: 0"),
 				RenderedEntry(RenderedEntryKind.SYSTEM, "Session: test")
 			),
-			parsedMessages = 7,
+			parsedCandidates = 7,
 			ignoredLines = 2,
 			malformedLines = 1,
 			observedEventCounts = mapOf("event_msg/user_message" to 1)

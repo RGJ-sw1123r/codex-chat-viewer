@@ -3,15 +3,31 @@ package app.codexchatviewer
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.io.TempDir
 import java.nio.charset.StandardCharsets
+import java.nio.file.Files
 import java.nio.file.Path
+import java.util.Comparator
 import kotlin.io.path.writeBytes
 
 class JsonlChatParserTest {
-	@TempDir
-	lateinit var tempDir: Path
+	private lateinit var tempDir: Path
+
+	@BeforeEach
+	fun setUpTempDir() {
+		val baseDir = Path.of("build", "tmp", "test-temp").toAbsolutePath()
+		Files.createDirectories(baseDir)
+		tempDir = Files.createTempDirectory(baseDir, "jsonl-parser-")
+	}
+
+	@AfterEach
+	fun tearDownTempDir() {
+		Files.walk(tempDir)
+			.sorted(Comparator.reverseOrder())
+			.forEach(Files::deleteIfExists)
+	}
 
 	@Test
 	fun agentsInjectedInstructionsAreClassifiedAsContext() {
@@ -49,7 +65,7 @@ class JsonlChatParserTest {
 		val rendered = ChatRenderer.render(file.toFile(), null, parsed)
 
 		assertTrue(rendered.contains("[YOU]\nopen the file"))
-		assertEquals(1, parsed.parsedMessages)
+		assertEquals(1, parsed.parsedCandidates)
 	}
 
 	@Test
@@ -64,7 +80,7 @@ class JsonlChatParserTest {
 		val parsed = JsonlChatParser.parse(file.toFile())
 		val rendered = ChatRenderer.render(file.toFile(), null, parsed)
 
-		assertEquals(2, parsed.parsedMessages)
+		assertEquals(2, parsed.parsedCandidates)
 		assertEquals(1, "\\[YOU\\]\\nsame user text".toRegex().findAll(rendered).count())
 	}
 
@@ -80,7 +96,7 @@ class JsonlChatParserTest {
 		val parsed = JsonlChatParser.parse(file.toFile())
 		val rendered = ChatRenderer.render(file.toFile(), null, parsed)
 
-		assertEquals(2, parsed.parsedMessages)
+		assertEquals(2, parsed.parsedCandidates)
 		assertEquals(2, "\\[YOU\\]\\nrepeat".toRegex().findAll(rendered).count())
 	}
 
@@ -107,7 +123,7 @@ class JsonlChatParserTest {
 		val rendered = ChatRenderer.render(file.toFile(), null, parsed)
 
 		assertTrue(rendered.contains("[CODEX]\nI will inspect the repo first."))
-		assertEquals(1, parsed.parsedMessages)
+		assertEquals(1, parsed.parsedCandidates)
 	}
 
 	@Test
@@ -184,7 +200,7 @@ class JsonlChatParserTest {
 		val parsed = JsonlChatParser.parse(file.toFile())
 		val rendered = ChatRenderer.render(file.toFile(), null, parsed)
 
-		assertEquals(2, parsed.parsedMessages)
+		assertEquals(2, parsed.parsedCandidates)
 		assertEquals(1, "\\[CODEX\\]\\nsame assistant text".toRegex().findAll(rendered).count())
 	}
 
@@ -200,7 +216,7 @@ class JsonlChatParserTest {
 		val parsed = JsonlChatParser.parse(file.toFile())
 		val rendered = ChatRenderer.render(file.toFile(), null, parsed)
 
-		assertEquals(2, parsed.parsedMessages)
+		assertEquals(2, parsed.parsedCandidates)
 		assertEquals(1, "\\[TOOL RESULT\\]".toRegex().findAll(rendered).count())
 	}
 
@@ -216,7 +232,7 @@ class JsonlChatParserTest {
 		val parsed = JsonlChatParser.parse(file.toFile())
 		val rendered = ChatRenderer.render(file.toFile(), null, parsed)
 
-		assertEquals(2, parsed.parsedMessages)
+		assertEquals(2, parsed.parsedCandidates)
 		assertEquals(2, "\\[CODEX\\]\\nrepeat".toRegex().findAll(rendered).count())
 	}
 
@@ -229,7 +245,7 @@ class JsonlChatParserTest {
 		val parsed = JsonlChatParser.parse(file.toFile())
 		val rendered = ChatRenderer.render(file.toFile(), null, parsed)
 
-		assertEquals(0, parsed.parsedMessages)
+		assertEquals(0, parsed.parsedCandidates)
 		assertEquals(1, parsed.ignoredLines)
 		assertTrue(rendered.contains("Observed event types:"))
 		assertTrue(rendered.contains("- response_item/message: 1"))
@@ -247,7 +263,7 @@ class JsonlChatParserTest {
 		val parsed = JsonlChatParser.parse(file.toFile())
 		val rendered = ChatRenderer.render(file.toFile(), null, parsed)
 
-		assertEquals(1, parsed.parsedMessages)
+		assertEquals(1, parsed.parsedCandidates)
 		assertEquals(1, parsed.malformedLines)
 		assertTrue(rendered.contains("[YOU]\nsafe line"))
 	}
@@ -259,7 +275,7 @@ class JsonlChatParserTest {
 		val parsed = JsonlChatParser.parse(file.toFile())
 		val rendered = ChatRenderer.render(file.toFile(), null, parsed)
 
-		assertEquals(0, parsed.parsedMessages)
+		assertEquals(0, parsed.parsedCandidates)
 		assertTrue(rendered.contains("No renderable chat messages found in this JSONL file."))
 	}
 
