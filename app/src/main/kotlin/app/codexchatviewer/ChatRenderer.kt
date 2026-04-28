@@ -30,10 +30,11 @@ object ChatRenderer {
 				}
 				appendLine()
 			} else {
-				parsedChatLog.entries.forEachIndexed { index, entry ->
-					appendLine(entry.kind.label)
-					appendLine(entry.content)
-					if (index != parsedChatLog.entries.lastIndex) {
+				val blocks = parsedChatLog.transcriptBlocks()
+				blocks.forEachIndexed { index, block ->
+					appendLine(block.label)
+					appendLine(block.content)
+					if (index != blocks.lastIndex) {
 						appendLine()
 					}
 				}

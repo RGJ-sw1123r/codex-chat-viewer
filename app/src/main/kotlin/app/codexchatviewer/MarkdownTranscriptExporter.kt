@@ -8,8 +8,8 @@ object MarkdownTranscriptExporter {
 		sessionId: String?,
 		chatLog: ParsedChatLog
 	): String {
-		val transcript = chatLog.entries.joinToString("\n\n") { entry ->
-			"${entry.kind.label}\n${entry.content.trim()}"
+		val transcript = chatLog.transcriptBlocks().joinToString("\n\n") { block ->
+			"${block.label}\n${block.content.trim()}"
 		}.trim()
 		val fence = selectFence(transcript)
 		val metadataLines = buildList {

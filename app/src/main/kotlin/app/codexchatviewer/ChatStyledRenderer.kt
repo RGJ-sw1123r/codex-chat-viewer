@@ -65,10 +65,11 @@ object ChatStyledRenderer {
 			}
 			appendBlankLine(document)
 		} else {
-			parsedChatLog.entries.forEachIndexed { index, entry ->
-				appendLine(document, entry.kind.label, colorFor(entry.kind), bold = true)
-				appendLine(document, entry.content, defaultTextColor)
-				if (index != parsedChatLog.entries.lastIndex) {
+			val blocks = parsedChatLog.transcriptBlocks()
+			blocks.forEachIndexed { index, block ->
+				appendLine(document, block.label, colorFor(block.type), bold = true)
+				appendLine(document, block.content, defaultTextColor)
+				if (index != blocks.lastIndex) {
 					appendBlankLine(document)
 				}
 			}
