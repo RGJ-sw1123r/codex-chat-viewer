@@ -6,6 +6,12 @@ import javax.swing.text.SimpleAttributeSet
 import javax.swing.text.StyleConstants
 import javax.swing.text.StyledDocument
 
+data class TranscriptHeaderRange(
+	val blockIndex: Int,
+	val startOffset: Int,
+	val endOffset: Int
+)
+
 object ChatStyledRenderer {
 	private const val separator = "========================================================================"
 	private val defaultTheme = ChatRenderThemes.terminalStyle
@@ -21,9 +27,18 @@ object ChatStyledRenderer {
 		render(viewer, file, sessionId, parsedChatLog, defaultTheme)
 	}
 
-	fun render(viewer: JTextPane, file: File?, sessionId: String?, parsedChatLog: ParsedChatLog?, theme: ChatRenderTheme) {
+	fun render(
+		viewer: JTextPane,
+		file: File?,
+		sessionId: String?,
+		parsedChatLog: ParsedChatLog?,
+		theme: ChatRenderTheme,
+		collapsedBlockIndexes: Set<Int> = emptySet(),
+		resetCaretToTop: Boolean = true
+	): List<TranscriptHeaderRange> {
 		val document = viewer.styledDocument
 		document.remove(0, document.length)
+		val headerRanges = mutableListOf<TranscriptHeaderRange>()
 
 		appendLine(document, "Codex Chat Viewer", theme.headerStyle)
 		appendBlankLine(document, theme)
@@ -32,7 +47,7 @@ object ChatStyledRenderer {
 			appendLine(document, "Ready.", theme.bodyStyle)
 			appendBlankLine(document, theme)
 			appendLine(document, "Default theme: ${theme.name}", theme.metadataStyle)
-			return
+			return emptyList()
 		}
 
 		appendLine(document, "File: ${file.name}", theme.metadataStyle)
@@ -59,8 +74,19 @@ object ChatStyledRenderer {
 			val blocks = parsedChatLog.transcriptBlocks()
 			blocks.forEachIndexed { index, block ->
 				val blockStyle = theme.blockStyleFor(block.type)
-				appendLine(document, block.label, blockStyle.labelStyle)
-				appendLine(document, block.content, blockStyle.contentStyle)
+				val isCollapsed = index in collapsedBlockIndexes
+				val marker = if (isCollapsed) theme.toggleMarkers.collapsed else theme.toggleMarkers.expanded
+				val headerText = "$marker ${block.label}"
+				val headerStart = document.length
+				appendLine(document, headerText, blockStyle.labelStyle)
+				headerRanges += TranscriptHeaderRange(
+					blockIndex = index,
+					startOffset = headerStart,
+					endOffset = headerStart + headerText.length
+				)
+				if (!isCollapsed) {
+					appendLine(document, block.content, blockStyle.contentStyle)
+				}
 				if (index != blocks.lastIndex) {
 					appendBlankLine(document, theme)
 				}
@@ -75,7 +101,10 @@ object ChatStyledRenderer {
 		appendLine(document, "Visible entries: ${parsedChatLog.entries.size}", theme.metadataStyle)
 		appendLine(document, "Ignored lines: ${parsedChatLog.ignoredLines}", theme.metadataStyle)
 		appendLine(document, "Malformed lines: ${parsedChatLog.malformedLines}", theme.metadataStyle)
-		viewer.caretPosition = 0
+		if (resetCaretToTop) {
+			viewer.caretPosition = 0
+		}
+		return headerRanges
 	}
 
 	fun appendSystemNotice(viewer: JTextPane, notice: String) {

@@ -12,6 +12,8 @@ import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
 import java.awt.event.ActionEvent
 import java.awt.event.KeyEvent
+import java.awt.event.MouseAdapter
+import java.awt.event.MouseEvent
 import java.io.File
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
@@ -51,6 +53,8 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 	private var currentSearchQuery = ""
 	private var currentSearchMatches: List<SearchMatch> = emptyList()
 	private var currentSearchMatchIndex = -1
+	private val collapsedBlockIndexes = mutableSetOf<Int>()
+	private var transcriptHeaderRanges: List<TranscriptHeaderRange> = emptyList()
 	private val searchHighlightTags = mutableListOf<Any>()
 	private val searchResultPainter = DefaultHighlighter.DefaultHighlightPainter(Color(71, 104, 168))
 	private val currentSearchResultPainter = DefaultHighlighter.DefaultHighlightPainter(Color(232, 181, 56))
@@ -93,6 +97,7 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 		add(createTopPanel(), BorderLayout.NORTH)
 		add(createChatPanel(), BorderLayout.CENTER)
 		installSearchShortcuts()
+		installTranscriptHeaderToggle()
 		updateSelection(null)
 
 		pack()
@@ -255,6 +260,8 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 			currentSelectedFile = null
 			currentSessionId = null
 			currentParsedChatLog = null
+			collapsedBlockIndexes.clear()
+			transcriptHeaderRanges = emptyList()
 			resetSearchState()
 			updateMetadataLabel(selectedFileLabel, "Selected File", "None")
 			updateMetadataLabel(selectedPathLabel, "Path", "Not selected")
@@ -272,6 +279,7 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 		currentSelectedFile = selectedFile
 		currentSessionId = sessionId
 		currentParsedChatLog = parsedChatLog
+		collapsedBlockIndexes.clear()
 		resetSearchState()
 
 		updateMetadataLabel(selectedFileLabel, "Selected File", selectedFile.name)
@@ -326,23 +334,86 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 				BorderFactory.createLineBorder(Color(78, 78, 78)),
 				BorderFactory.createEmptyBorder(2, 2, 2, 2)
 			)
-			addActionListener { renderCurrentChat() }
+			addActionListener {
+				collapsedBlockIndexes.clear()
+				renderCurrentChat()
+			}
 		}
 	}
 
 	private fun renderCurrentChat() {
+		renderCurrentChat(scrollAnchor = null)
+	}
+
+	private fun renderCurrentChat(scrollAnchor: TranscriptScrollAnchor?) {
 		val file = currentSelectedFile
 		val parsed = currentParsedChatLog
 		if (file == null || parsed == null) {
 			ChatStyledRenderer.render(chatArea, null, null, null)
+			transcriptHeaderRanges = emptyList()
 			clearSearchHighlights()
 			return
 		}
 
 		val filteredChatLog = currentFilteredChatLog() ?: return
 
-		ChatStyledRenderer.render(chatArea, file, currentSessionId, filteredChatLog)
+		transcriptHeaderRanges = ChatStyledRenderer.render(
+			viewer = chatArea,
+			file = file,
+			sessionId = currentSessionId,
+			parsedChatLog = filteredChatLog,
+			theme = ChatRenderThemes.terminalStyle,
+			collapsedBlockIndexes = collapsedBlockIndexes,
+			resetCaretToTop = scrollAnchor == null
+		)
 		refreshSearchHighlights(preserveCurrentIndex = true)
+		if (scrollAnchor != null) {
+			SwingUtilities.invokeLater {
+				restoreScrollAnchor(scrollAnchor)
+			}
+		}
+	}
+
+	private fun installTranscriptHeaderToggle() {
+		chatArea.addMouseListener(object : MouseAdapter() {
+			override fun mouseClicked(event: MouseEvent) {
+				if (event.button != MouseEvent.BUTTON1) {
+					return
+				}
+
+				val offset = chatArea.viewToModel2D(event.point)
+				val headerRange = transcriptHeaderRanges.firstOrNull { range ->
+					offset >= range.startOffset && offset < range.endOffset
+				} ?: return
+				val anchor = scrollAnchorFor(headerRange)
+
+				if (!collapsedBlockIndexes.add(headerRange.blockIndex)) {
+					collapsedBlockIndexes.remove(headerRange.blockIndex)
+				}
+				renderCurrentChat(scrollAnchor = anchor)
+			}
+		})
+	}
+
+	private fun scrollAnchorFor(headerRange: TranscriptHeaderRange): TranscriptScrollAnchor? {
+		val headerBounds = chatArea.modelToView2D(headerRange.startOffset)?.bounds ?: return null
+		return TranscriptScrollAnchor(
+			blockIndex = headerRange.blockIndex,
+			viewportYOffset = headerBounds.y - chatArea.visibleRect.y
+		)
+	}
+
+	private fun restoreScrollAnchor(scrollAnchor: TranscriptScrollAnchor?) {
+		if (scrollAnchor == null) {
+			return
+		}
+
+		val headerRange = transcriptHeaderRanges.firstOrNull { it.blockIndex == scrollAnchor.blockIndex } ?: return
+		val headerBounds = chatArea.modelToView2D(headerRange.startOffset)?.bounds ?: return
+		val viewport = chatArea.visibleRect
+		viewport.y = (headerBounds.y - scrollAnchor.viewportYOffset)
+			.coerceIn(0, (chatArea.height - viewport.height).coerceAtLeast(0))
+		chatArea.scrollRectToVisible(viewport)
 	}
 
 	private fun currentFilteredChatLog(): ParsedChatLog? {
@@ -569,6 +640,11 @@ private class WrappedTextPane : JTextPane() {
 		return true
 	}
 }
+
+private data class TranscriptScrollAnchor(
+	val blockIndex: Int,
+	val viewportYOffset: Int
+)
 
 internal data class SearchMatch(
 	val start: Int,

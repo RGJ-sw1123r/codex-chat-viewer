@@ -15,6 +15,11 @@ data class ChatBlockStyle(
 	val contentStyle: ChatTextStyle
 )
 
+data class ChatToggleMarkers(
+	val expanded: String,
+	val collapsed: String
+)
+
 data class ChatRenderTheme(
 	val name: String,
 	val backgroundColor: Color,
@@ -24,6 +29,7 @@ data class ChatRenderTheme(
 	val metadataStyle: ChatTextStyle,
 	val bodyStyle: ChatTextStyle,
 	val separatorStyle: ChatTextStyle,
+	val toggleMarkers: ChatToggleMarkers,
 	val blockStyles: Map<RenderedEntryKind, ChatBlockStyle>
 ) {
 	fun blockStyleFor(type: RenderedEntryKind): ChatBlockStyle {
@@ -49,6 +55,10 @@ object ChatRenderThemes {
 		),
 		separatorStyle = ChatTextStyle(
 			color = Color(135, 135, 135)
+		),
+		toggleMarkers = ChatToggleMarkers(
+			expanded = "[v]",
+			collapsed = "[>]"
 		),
 		blockStyles = mapOf(
 			RenderedEntryKind.CONTEXT to blockStyle(Color(144, 196, 164)),
