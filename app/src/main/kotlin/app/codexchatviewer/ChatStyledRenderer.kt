@@ -1,7 +1,5 @@
 package app.codexchatviewer
 
-import java.awt.Color
-import java.awt.Font
 import java.io.File
 import javax.swing.JTextPane
 import javax.swing.text.SimpleAttributeSet
@@ -10,114 +8,101 @@ import javax.swing.text.StyledDocument
 
 object ChatStyledRenderer {
 	private const val separator = "========================================================================"
-
-	private val backgroundColor = Color(20, 20, 20)
-	private val headerColor = Color(180, 180, 180)
-	private val metadataColor = Color(150, 150, 150)
-	private val defaultTextColor = Color(230, 230, 230)
-	private val youColor = Color(255, 196, 107)
-	private val codexColor = Color(120, 200, 255)
-	private val contextColor = Color(144, 196, 164)
-	private val taskColor = Color(196, 168, 255)
-	private val toolCallColor = Color(166, 201, 132)
-	private val toolResultColor = Color(180, 180, 180)
-	private val systemColor = Color(135, 135, 135)
+	private val defaultTheme = ChatRenderThemes.terminalStyle
 
 	fun configure(viewer: JTextPane) {
-		viewer.font = Font(Font.MONOSPACED, Font.PLAIN, 14)
+		viewer.font = defaultTheme.viewerFont
 		viewer.isEditable = false
-		viewer.background = backgroundColor
-		viewer.foreground = defaultTextColor
+		viewer.background = defaultTheme.backgroundColor
+		viewer.foreground = defaultTheme.foregroundColor
 	}
 
 	fun render(viewer: JTextPane, file: File?, sessionId: String?, parsedChatLog: ParsedChatLog?) {
+		render(viewer, file, sessionId, parsedChatLog, defaultTheme)
+	}
+
+	fun render(viewer: JTextPane, file: File?, sessionId: String?, parsedChatLog: ParsedChatLog?, theme: ChatRenderTheme) {
 		val document = viewer.styledDocument
 		document.remove(0, document.length)
 
-		appendLine(document, "Codex Chat Viewer", headerColor, bold = true)
-		appendBlankLine(document)
+		appendLine(document, "Codex Chat Viewer", theme.headerStyle)
+		appendBlankLine(document, theme)
 
 		if (file == null || parsedChatLog == null) {
-			appendLine(document, "Ready.", defaultTextColor)
-			appendBlankLine(document)
-			appendLine(document, "Default theme: Terminal Style", metadataColor)
+			appendLine(document, "Ready.", theme.bodyStyle)
+			appendBlankLine(document, theme)
+			appendLine(document, "Default theme: ${theme.name}", theme.metadataStyle)
 			return
 		}
 
-		appendLine(document, "File: ${file.name}", metadataColor)
-		appendLine(document, "Path: ${file.absolutePath}", metadataColor)
-		appendLine(document, "Session ID: ${sessionId ?: "Not detected"}", metadataColor)
-		appendBlankLine(document)
-		appendLine(document, separator, systemColor)
-		appendBlankLine(document)
+		appendLine(document, "File: ${file.name}", theme.metadataStyle)
+		appendLine(document, "Path: ${file.absolutePath}", theme.metadataStyle)
+		appendLine(document, "Session ID: ${sessionId ?: "Not detected"}", theme.metadataStyle)
+		appendBlankLine(document, theme)
+		appendLine(document, separator, theme.separatorStyle)
+		appendBlankLine(document, theme)
 
 		if (parsedChatLog.entries.isEmpty()) {
-			appendLine(document, "No renderable chat messages found in this JSONL file.", defaultTextColor)
+			appendLine(document, "No renderable chat messages found in this JSONL file.", theme.bodyStyle)
 			if (parsedChatLog.observedEventCounts.isNotEmpty()) {
-				appendBlankLine(document)
-				appendLine(document, "Observed event types:", metadataColor)
+				appendBlankLine(document, theme)
+				appendLine(document, "Observed event types:", theme.metadataStyle)
 				parsedChatLog.observedEventCounts.entries
 					.sortedByDescending { it.value }
 					.take(8)
 					.forEach { (name, count) ->
-						appendLine(document, "- $name: $count", metadataColor)
+						appendLine(document, "- $name: $count", theme.metadataStyle)
 					}
 			}
-			appendBlankLine(document)
+			appendBlankLine(document, theme)
 		} else {
 			val blocks = parsedChatLog.transcriptBlocks()
 			blocks.forEachIndexed { index, block ->
-				appendLine(document, block.label, colorFor(block.type), bold = true)
-				appendLine(document, block.content, defaultTextColor)
+				val blockStyle = theme.blockStyleFor(block.type)
+				appendLine(document, block.label, blockStyle.labelStyle)
+				appendLine(document, block.content, blockStyle.contentStyle)
 				if (index != blocks.lastIndex) {
-					appendBlankLine(document)
+					appendBlankLine(document, theme)
 				}
 			}
-			appendBlankLine(document)
-			appendBlankLine(document)
+			appendBlankLine(document, theme)
+			appendBlankLine(document, theme)
 		}
 
-		appendLine(document, separator, systemColor)
-		appendBlankLine(document)
-		appendLine(document, "Parsed candidates: ${parsedChatLog.parsedCandidates}", metadataColor)
-		appendLine(document, "Visible entries: ${parsedChatLog.entries.size}", metadataColor)
-		appendLine(document, "Ignored lines: ${parsedChatLog.ignoredLines}", metadataColor)
-		appendLine(document, "Malformed lines: ${parsedChatLog.malformedLines}", metadataColor)
+		appendLine(document, separator, theme.separatorStyle)
+		appendBlankLine(document, theme)
+		appendLine(document, "Parsed candidates: ${parsedChatLog.parsedCandidates}", theme.metadataStyle)
+		appendLine(document, "Visible entries: ${parsedChatLog.entries.size}", theme.metadataStyle)
+		appendLine(document, "Ignored lines: ${parsedChatLog.ignoredLines}", theme.metadataStyle)
+		appendLine(document, "Malformed lines: ${parsedChatLog.malformedLines}", theme.metadataStyle)
 		viewer.caretPosition = 0
 	}
 
 	fun appendSystemNotice(viewer: JTextPane, notice: String) {
+		appendSystemNotice(viewer, notice, defaultTheme)
+	}
+
+	fun appendSystemNotice(viewer: JTextPane, notice: String, theme: ChatRenderTheme) {
 		val document = viewer.styledDocument
 		if (document.length > 0) {
-			appendBlankLine(document)
+			appendBlankLine(document, theme)
 		}
-		appendLine(document, RenderedEntryKind.SYSTEM.label, colorFor(RenderedEntryKind.SYSTEM), bold = true)
-		appendLine(document, notice, defaultTextColor)
+		val blockStyle = theme.blockStyleFor(RenderedEntryKind.SYSTEM)
+		appendLine(document, RenderedEntryKind.SYSTEM.label, blockStyle.labelStyle)
+		appendLine(document, notice, blockStyle.contentStyle)
 	}
 
-	private fun colorFor(kind: RenderedEntryKind): Color {
-		return when (kind) {
-			RenderedEntryKind.CONTEXT -> contextColor
-			RenderedEntryKind.TASK -> taskColor
-			RenderedEntryKind.YOU -> youColor
-			RenderedEntryKind.CODEX -> codexColor
-			RenderedEntryKind.TOOL_CALL -> toolCallColor
-			RenderedEntryKind.TOOL_RESULT -> toolResultColor
-			RenderedEntryKind.SYSTEM -> systemColor
-		}
+	private fun appendBlankLine(document: StyledDocument, theme: ChatRenderTheme) {
+		appendLine(document, "", theme.bodyStyle)
 	}
 
-	private fun appendBlankLine(document: StyledDocument) {
-		appendLine(document, "", defaultTextColor)
-	}
-
-	private fun appendLine(document: StyledDocument, text: String, color: Color, bold: Boolean = false) {
-		val style = SimpleAttributeSet().apply {
-			StyleConstants.setForeground(this, color)
-			StyleConstants.setBold(this, bold)
-			StyleConstants.setFontFamily(this, Font.MONOSPACED)
-			StyleConstants.setFontSize(this, 14)
+	private fun appendLine(document: StyledDocument, text: String, textStyle: ChatTextStyle) {
+		val attributes = SimpleAttributeSet().apply {
+			StyleConstants.setForeground(this, textStyle.color)
+			StyleConstants.setBold(this, textStyle.bold)
+			StyleConstants.setFontFamily(this, textStyle.fontFamily)
+			StyleConstants.setFontSize(this, textStyle.fontSize)
 		}
-		document.insertString(document.length, "$text\n", style)
+		document.insertString(document.length, "$text\n", attributes)
 	}
 }
