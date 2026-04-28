@@ -71,6 +71,7 @@ The app currently focuses on:
 - UTF-8 file reading
 - Unicode-friendly viewer rendering
 - Terminal-style dark viewer
+- Markdown Style document preview rendering with section cards, note blocks, and technical callouts
 - DM Style component-based direct message rendering with right-aligned `[YOU]`, left-aligned `[CODEX]`, and centered metadata cards
 - Messenger Style component-based conversation rendering with right-aligned `[YOU]`, left-aligned `[CODEX]`, and centered metadata cards
 - Styled label colors for faster scanning
@@ -115,9 +116,7 @@ The app currently focuses on:
 
 ### Planned
 
-- Theme rendering:
-  - Terminal Style refinement
-  - Markdown Style
+- Terminal Style refinement
 - Live tail / watch mode for active Codex sessions
 - Optional support for a stable official Codex session export format, if one becomes available
 

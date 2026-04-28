@@ -93,7 +93,74 @@ object ChatRenderThemes {
 		)
 	)
 
-	val markdownStyle = terminalStyle.copy(name = "Markdown Style")
+	val markdownStyle = ChatRenderTheme(
+		name = "Markdown Style",
+		backgroundColor = Color(247, 248, 250),
+		foregroundColor = Color(31, 35, 40),
+		viewerFont = Font(Font.SANS_SERIF, Font.PLAIN, 14),
+		headerStyle = ChatTextStyle(
+			color = Color(36, 41, 47),
+			bold = true,
+			fontFamily = Font.SANS_SERIF,
+			fontSize = 18
+		),
+		metadataStyle = ChatTextStyle(
+			color = Color(101, 109, 118),
+			fontFamily = Font.SANS_SERIF,
+			fontSize = 12
+		),
+		bodyStyle = ChatTextStyle(
+			color = Color(36, 41, 47),
+			fontFamily = Font.SANS_SERIF,
+			fontSize = 14
+		),
+		separatorStyle = ChatTextStyle(
+			color = Color(208, 215, 222),
+			fontFamily = Font.SANS_SERIF,
+			fontSize = 12
+		),
+		toggleMarkers = ChatToggleMarkers(
+			expanded = "v",
+			collapsed = ">"
+		),
+		blockStyles = mapOf(
+			RenderedEntryKind.CONTEXT to documentBlock(
+				labelColor = Color(87, 96, 106),
+				contentColor = Color(73, 80, 87),
+				backgroundColor = Color(246, 248, 250)
+			),
+			RenderedEntryKind.TASK to documentBlock(
+				labelColor = Color(116, 76, 9),
+				contentColor = Color(73, 80, 87),
+				backgroundColor = Color(255, 248, 225)
+			),
+			RenderedEntryKind.YOU to documentBlock(
+				labelColor = Color(9, 105, 218),
+				contentColor = Color(36, 41, 47),
+				backgroundColor = Color(255, 255, 255)
+			),
+			RenderedEntryKind.CODEX to documentBlock(
+				labelColor = Color(31, 136, 61),
+				contentColor = Color(36, 41, 47),
+				backgroundColor = Color(255, 255, 255)
+			),
+			RenderedEntryKind.TOOL_CALL to documentBlock(
+				labelColor = Color(130, 80, 223),
+				contentColor = Color(36, 41, 47),
+				backgroundColor = Color(246, 248, 250)
+			),
+			RenderedEntryKind.TOOL_RESULT to documentBlock(
+				labelColor = Color(87, 96, 106),
+				contentColor = Color(36, 41, 47),
+				backgroundColor = Color(246, 248, 250)
+			),
+			RenderedEntryKind.SYSTEM to documentBlock(
+				labelColor = Color(87, 96, 106),
+				contentColor = Color(73, 80, 87),
+				backgroundColor = Color(246, 248, 250)
+			)
+		)
+	)
 
 	val dmStyle = ChatRenderTheme(
 		name = "DM Style",
@@ -275,6 +342,27 @@ object ChatRenderThemes {
 			contentStyle = ChatTextStyle(
 				color = Color(230, 230, 230)
 			)
+		)
+	}
+
+	private fun documentBlock(labelColor: Color, contentColor: Color, backgroundColor: Color): ChatBlockStyle {
+		return ChatBlockStyle(
+			labelStyle = ChatTextStyle(
+				color = labelColor,
+				bold = true,
+				fontFamily = Font.SANS_SERIF,
+				fontSize = 14,
+				backgroundColor = backgroundColor
+			),
+			contentStyle = ChatTextStyle(
+				color = contentColor,
+				fontFamily = Font.SANS_SERIF,
+				fontSize = 14,
+				backgroundColor = backgroundColor
+			),
+			alignment = ChatBlockAlignment.LEFT,
+			spaceAbove = 10f,
+			spaceBelow = 8f
 		)
 	}
 

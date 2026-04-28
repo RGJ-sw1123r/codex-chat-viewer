@@ -43,6 +43,22 @@ class ChatRenderThemeTest {
 	}
 
 	@Test
+	fun markdownStyleProvidesDocumentStylesForEveryRenderedEntryKind() {
+		val theme = ChatRenderThemes.markdownStyle
+
+		assertEquals("Markdown Style", theme.name)
+		assertEquals(RenderedEntryKind.entries.toSet(), theme.blockStyles.keys)
+		assertEquals(Color(247, 248, 250), theme.backgroundColor)
+		assertEquals(ChatBlockAlignment.LEFT, theme.blockStyleFor(RenderedEntryKind.YOU).alignment)
+		assertEquals(ChatBlockAlignment.LEFT, theme.blockStyleFor(RenderedEntryKind.CODEX).alignment)
+		assertNotEquals(ChatRenderThemes.terminalStyle.backgroundColor, theme.backgroundColor)
+		assertNotEquals(
+			ChatRenderThemes.messengerStyle.blockStyleFor(RenderedEntryKind.YOU).alignment,
+			theme.blockStyleFor(RenderedEntryKind.YOU).alignment
+		)
+	}
+
+	@Test
 	fun dmStyleProvidesStylesForEveryRenderedEntryKind() {
 		val theme = ChatRenderThemes.dmStyle
 

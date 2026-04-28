@@ -378,14 +378,7 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 		if (file == null || parsed == null) {
 			if (usesComponentChatRenderer()) {
 				showMessengerView()
-				val result = MessengerChatRenderer.render(
-					container = messengerPanel,
-					file = null,
-					sessionId = null,
-					parsedChatLog = null,
-					theme = currentTheme(),
-					viewportWidth = currentTranscriptViewportWidth()
-				)
+				val result = renderComponentTranscript(file = null, parsedChatLog = null)
 				transcriptHeaderRanges = result.headerRanges
 				messengerRenderedText = result.transcriptText
 				messengerBlockRanges = result.blockRanges
@@ -405,16 +398,7 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 
 		if (usesComponentChatRenderer()) {
 			showMessengerView()
-			val result = MessengerChatRenderer.render(
-				container = messengerPanel,
-				file = file,
-				sessionId = currentSessionId,
-				parsedChatLog = filteredChatLog,
-				theme = currentTheme(),
-				viewportWidth = currentTranscriptViewportWidth(),
-				collapsedBlockIndexes = collapsedBlockIndexes,
-				onHeaderClicked = ::toggleMessengerBlock
-			)
+			val result = renderComponentTranscript(file = file, parsedChatLog = filteredChatLog)
 			transcriptHeaderRanges = result.headerRanges
 			messengerRenderedText = result.transcriptText
 			messengerBlockRanges = result.blockRanges
@@ -441,6 +425,33 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 			SwingUtilities.invokeLater {
 				restoreScrollAnchor(scrollAnchor)
 			}
+		}
+	}
+
+	private fun renderComponentTranscript(file: File?, parsedChatLog: ParsedChatLog?): MessengerRenderResult {
+		val theme = currentTheme()
+		return if (theme.name == ChatRenderThemes.markdownStyle.name) {
+			MarkdownDocumentRenderer.render(
+				container = messengerPanel,
+				file = file,
+				sessionId = currentSessionId,
+				parsedChatLog = parsedChatLog,
+				theme = theme,
+				viewportWidth = currentTranscriptViewportWidth(),
+				collapsedBlockIndexes = collapsedBlockIndexes,
+				onHeaderClicked = ::toggleMessengerBlock
+			)
+		} else {
+			MessengerChatRenderer.render(
+				container = messengerPanel,
+				file = file,
+				sessionId = currentSessionId,
+				parsedChatLog = parsedChatLog,
+				theme = theme,
+				viewportWidth = currentTranscriptViewportWidth(),
+				collapsedBlockIndexes = collapsedBlockIndexes,
+				onHeaderClicked = ::toggleMessengerBlock
+			)
 		}
 	}
 
@@ -617,12 +628,21 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 	private fun appendViewerNotice(notice: String) {
 		if (usesComponentChatRenderer()) {
 			showMessengerView()
-			MessengerChatRenderer.appendSystemNotice(
-				messengerPanel,
-				notice,
-				currentTheme(),
-				viewportWidth = currentTranscriptViewportWidth()
-			)
+			if (currentTheme().name == ChatRenderThemes.markdownStyle.name) {
+				MarkdownDocumentRenderer.appendSystemNotice(
+					messengerPanel,
+					notice,
+					currentTheme(),
+					viewportWidth = currentTranscriptViewportWidth()
+				)
+			} else {
+				MessengerChatRenderer.appendSystemNotice(
+					messengerPanel,
+					notice,
+					currentTheme(),
+					viewportWidth = currentTranscriptViewportWidth()
+				)
+			}
 			messengerRenderedText = (messengerRenderedText + "\n[SYSTEM]\n" + notice).trim()
 		} else {
 			showTextView()
@@ -636,6 +656,7 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 
 	private fun usesComponentChatRenderer(): Boolean {
 		return when (currentTheme().name) {
+			ChatRenderThemes.markdownStyle.name,
 			ChatRenderThemes.messengerStyle.name,
 			ChatRenderThemes.dmStyle.name -> true
 			else -> false
