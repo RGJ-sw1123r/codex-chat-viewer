@@ -376,7 +376,7 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 		val file = currentSelectedFile
 		val parsed = currentParsedChatLog
 		if (file == null || parsed == null) {
-			if (isMessengerTheme()) {
+			if (usesComponentChatRenderer()) {
 				showMessengerView()
 				val result = MessengerChatRenderer.render(
 					container = messengerPanel,
@@ -403,7 +403,7 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 
 		val filteredChatLog = currentFilteredChatLog() ?: return
 
-		if (isMessengerTheme()) {
+		if (usesComponentChatRenderer()) {
 			showMessengerView()
 			val result = MessengerChatRenderer.render(
 				container = messengerPanel,
@@ -445,7 +445,7 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 	}
 
 	private fun handleTranscriptViewportResize() {
-		if (!isMessengerTheme()) {
+		if (!usesComponentChatRenderer()) {
 			return
 		}
 
@@ -615,7 +615,7 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 	}
 
 	private fun appendViewerNotice(notice: String) {
-		if (isMessengerTheme()) {
+		if (usesComponentChatRenderer()) {
 			showMessengerView()
 			MessengerChatRenderer.appendSystemNotice(
 				messengerPanel,
@@ -634,8 +634,12 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 		return ChatRenderThemes.byName(themeComboBox.selectedItem as? String ?: ChatRenderThemes.terminalStyle.name)
 	}
 
-	private fun isMessengerTheme(): Boolean {
-		return currentTheme().name == ChatRenderThemes.messengerStyle.name
+	private fun usesComponentChatRenderer(): Boolean {
+		return when (currentTheme().name) {
+			ChatRenderThemes.messengerStyle.name,
+			ChatRenderThemes.dmStyle.name -> true
+			else -> false
+		}
 	}
 
 	private fun defaultMarkdownExportName(sourceFile: File): String {
@@ -778,7 +782,7 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 	private fun applySearchHighlights() {
 		clearSearchHighlights()
 
-		if (isMessengerTheme()) {
+		if (usesComponentChatRenderer()) {
 			val match = currentSearchMatches.getOrNull(currentSearchMatchIndex) ?: return
 			val blockRange = messengerBlockRanges.firstOrNull { range ->
 				match.start >= range.startOffset && match.start < range.endOffset
@@ -812,7 +816,7 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 	}
 
 	private fun scrollToSearchMatch(match: SearchMatch) {
-		if (isMessengerTheme()) {
+		if (usesComponentChatRenderer()) {
 			val blockRange = messengerBlockRanges.firstOrNull { range ->
 				match.start >= range.startOffset && match.start < range.endOffset
 			} ?: return
@@ -828,7 +832,7 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 	}
 
 	private fun currentRenderedText(): String {
-		if (isMessengerTheme()) {
+		if (usesComponentChatRenderer()) {
 			return messengerRenderedText
 		}
 

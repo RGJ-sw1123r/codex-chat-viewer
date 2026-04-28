@@ -3,6 +3,7 @@ package app.codexchatviewer
 import java.awt.Color
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Test
 
 class ChatRenderThemeTest {
@@ -39,5 +40,21 @@ class ChatRenderThemeTest {
 		assertEquals(2, theme.blockStyleFor(RenderedEntryKind.SYSTEM).horizontalPadding)
 		assertEquals(2, theme.blockStyleFor(RenderedEntryKind.YOU).horizontalPadding)
 		assertEquals(2, theme.blockStyleFor(RenderedEntryKind.CODEX).horizontalPadding)
+	}
+
+	@Test
+	fun dmStyleProvidesStylesForEveryRenderedEntryKind() {
+		val theme = ChatRenderThemes.dmStyle
+
+		assertEquals("DM Style", theme.name)
+		assertEquals(RenderedEntryKind.entries.toSet(), theme.blockStyles.keys)
+		assertEquals(Color(255, 255, 255), theme.backgroundColor)
+		assertEquals(ChatBlockAlignment.RIGHT, theme.blockStyleFor(RenderedEntryKind.YOU).alignment)
+		assertEquals(ChatBlockAlignment.LEFT, theme.blockStyleFor(RenderedEntryKind.CODEX).alignment)
+		assertEquals(ChatBlockAlignment.CENTER, theme.blockStyleFor(RenderedEntryKind.SYSTEM).alignment)
+		assertNotEquals(
+			theme.backgroundColor,
+			theme.blockStyleFor(RenderedEntryKind.CODEX).contentStyle.backgroundColor
+		)
 	}
 }

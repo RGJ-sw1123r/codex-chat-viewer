@@ -95,7 +95,75 @@ object ChatRenderThemes {
 
 	val markdownStyle = terminalStyle.copy(name = "Markdown Style")
 
-	val dmStyle = terminalStyle.copy(name = "DM Style")
+	val dmStyle = ChatRenderTheme(
+		name = "DM Style",
+		backgroundColor = Color(255, 255, 255),
+		foregroundColor = Color(28, 32, 38),
+		viewerFont = Font(Font.SANS_SERIF, Font.PLAIN, 14),
+		headerStyle = ChatTextStyle(
+			color = Color(95, 107, 122),
+			bold = true,
+			fontFamily = Font.SANS_SERIF,
+			fontSize = 16
+		),
+		metadataStyle = ChatTextStyle(
+			color = Color(114, 124, 136),
+			fontFamily = Font.SANS_SERIF,
+			fontSize = 12
+		),
+		bodyStyle = ChatTextStyle(
+			color = Color(28, 32, 38),
+			fontFamily = Font.SANS_SERIF
+		),
+		separatorStyle = ChatTextStyle(
+			color = Color(206, 214, 223),
+			fontFamily = Font.SANS_SERIF,
+			fontSize = 12
+		),
+		toggleMarkers = ChatToggleMarkers(
+			expanded = "v",
+			collapsed = ">"
+		),
+		blockStyles = mapOf(
+			RenderedEntryKind.CONTEXT to centeredMessengerBlock(
+				labelColor = Color(101, 111, 122),
+				backgroundColor = Color(241, 244, 247),
+				contentColor = Color(98, 108, 120)
+			),
+			RenderedEntryKind.TASK to centeredMessengerBlock(
+				labelColor = Color(101, 111, 122),
+				backgroundColor = Color(241, 244, 247),
+				contentColor = Color(98, 108, 120)
+			),
+			RenderedEntryKind.YOU to conversationBubbleBlock(
+				labelColor = Color(59, 94, 146),
+				contentColor = Color(28, 32, 38),
+				backgroundColor = Color(219, 233, 252),
+				alignment = ChatBlockAlignment.RIGHT
+			),
+			RenderedEntryKind.CODEX to conversationBubbleBlock(
+				labelColor = Color(81, 91, 104),
+				contentColor = Color(28, 32, 38),
+				backgroundColor = Color(247, 248, 250),
+				alignment = ChatBlockAlignment.LEFT
+			),
+			RenderedEntryKind.TOOL_CALL to centeredMessengerBlock(
+				labelColor = Color(115, 124, 135),
+				backgroundColor = Color(236, 239, 243),
+				contentColor = Color(110, 119, 130)
+			),
+			RenderedEntryKind.TOOL_RESULT to centeredMessengerBlock(
+				labelColor = Color(115, 124, 135),
+				backgroundColor = Color(236, 239, 243),
+				contentColor = Color(110, 119, 130)
+			),
+			RenderedEntryKind.SYSTEM to centeredMessengerBlock(
+				labelColor = Color(101, 111, 122),
+				backgroundColor = Color(241, 244, 247),
+				contentColor = Color(98, 108, 120)
+			)
+		)
+	)
 
 	val messengerStyle = ChatRenderTheme(
 		name = "Messenger Style",
@@ -210,7 +278,11 @@ object ChatRenderThemes {
 		)
 	}
 
-	private fun centeredMessengerBlock(labelColor: Color, backgroundColor: Color): ChatBlockStyle {
+	private fun centeredMessengerBlock(
+		labelColor: Color,
+		backgroundColor: Color,
+		contentColor: Color = Color(117, 107, 95)
+	): ChatBlockStyle {
 		return ChatBlockStyle(
 			labelStyle = messengerText(
 				color = labelColor,
@@ -219,7 +291,7 @@ object ChatRenderThemes {
 				backgroundColor = backgroundColor
 			),
 			contentStyle = messengerText(
-				color = Color(117, 107, 95),
+				color = contentColor,
 				fontSize = 12,
 				backgroundColor = backgroundColor
 			),
@@ -230,6 +302,33 @@ object ChatRenderThemes {
 			spaceBelow = 2f,
 			horizontalPadding = 2,
 			minimumCardWidth = 34
+		)
+	}
+
+	private fun conversationBubbleBlock(
+		labelColor: Color,
+		contentColor: Color,
+		backgroundColor: Color,
+		alignment: ChatBlockAlignment
+	): ChatBlockStyle {
+		return ChatBlockStyle(
+			labelStyle = messengerText(
+				color = labelColor,
+				bold = true,
+				backgroundColor = backgroundColor
+			),
+			contentStyle = messengerText(
+				color = contentColor,
+				backgroundColor = backgroundColor
+			),
+			alignment = alignment,
+			leftIndent = if (alignment == ChatBlockAlignment.RIGHT) 140f else 14f,
+			rightIndent = if (alignment == ChatBlockAlignment.RIGHT) 14f else 140f,
+			firstLineIndent = 0f,
+			spaceAbove = 8f,
+			spaceBelow = 2f,
+			horizontalPadding = 2,
+			minimumCardWidth = 26
 		)
 	}
 

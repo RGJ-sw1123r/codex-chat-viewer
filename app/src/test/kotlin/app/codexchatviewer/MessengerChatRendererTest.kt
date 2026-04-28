@@ -11,6 +11,7 @@ import javax.swing.JPanel
 import javax.swing.JTextArea
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -80,6 +81,33 @@ class MessengerChatRendererTest {
 		assertEquals(644, wideYouBubble.maximumSize.width)
 		assertEquals(600, narrowSystemBubble.maximumSize.width)
 		assertEquals(756, wideSystemBubble.maximumSize.width)
+	}
+
+	@Test
+	fun dmStyleReusesMessengerLayoutWithDmPalette() {
+		val panel = JPanel()
+		MessengerChatRenderer.render(
+			container = panel,
+			file = File("rollout-test.jsonl"),
+			sessionId = "session-123",
+			parsedChatLog = sampleLog(),
+			theme = ChatRenderThemes.dmStyle,
+			viewportWidth = 1200
+		)
+
+		val youRow = requireComponent(panel, "messenger-row-YOU") as JPanel
+		val codexRow = requireComponent(panel, "messenger-row-CODEX") as JPanel
+		val youBubble = requireComponent(panel, "messenger-bubble-YOU")
+		val codexBubble = requireComponent(panel, "messenger-bubble-CODEX")
+
+		assertEquals(ChatRenderThemes.dmStyle.backgroundColor, panel.background)
+		assertSame(youBubble, (youRow.layout as BorderLayout).getLayoutComponent(BorderLayout.EAST))
+		assertSame(codexBubble, (codexRow.layout as BorderLayout).getLayoutComponent(BorderLayout.WEST))
+		assertEquals(552, youBubble.maximumSize.width)
+		assertNotEquals(
+			ChatRenderThemes.dmStyle.backgroundColor,
+			ChatRenderThemes.dmStyle.blockStyleFor(RenderedEntryKind.CODEX).contentStyle.backgroundColor
+		)
 	}
 
 	@Test
