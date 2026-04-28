@@ -33,9 +33,10 @@ The app currently focuses on:
 - opening local Codex rollout logs
 - rendering readable conversation blocks
 - showing who or what produced each block
+- collapsing and expanding conversation blocks inline
 - filtering noisy sections such as tool calls, tool results, or metadata
 - searching within the currently rendered transcript
-- exporting the currently visible filtered transcript to Markdown
+- exporting the transcript based on the current filter icon state to Markdown
 - keeping everything local
 
 ## Features
@@ -72,6 +73,8 @@ The app currently focuses on:
 - Terminal-style dark viewer
 - Styled label colors for faster scanning
 - Soft-wrapped main viewer without horizontal scrolling
+- Inline collapse / expand for transcript blocks
+- Theme-driven toggle markers for block headers
 - Compact icon filter toggles:
   - YOU
   - CODEX
@@ -88,13 +91,13 @@ The app currently focuses on:
 - Search state resets when opening a new JSONL file
 - Search highlights are recalculated after filter changes
 - Search highlights do not affect Markdown export
+- Collapse / expand state is local to the currently rendered transcript view
 - Footer stats:
   - parsed candidates
   - visible entries
   - ignored lines
   - malformed lines
-- Markdown export for the currently visible filtered transcript
-- Markdown export uses the current filter icon state
+- Markdown export based on the current filter icon state
 - Markdown export avoids raw JSONL and hidden filtered entries
 - Markdown export includes safe metadata:
   - source file name
@@ -110,7 +113,6 @@ The app currently focuses on:
 
 ### Planned
 
-- Collapse / expand for long conversation blocks
 - Theme rendering:
   - Terminal Style refinement
   - Markdown Style
@@ -122,9 +124,9 @@ The app currently focuses on:
 
 ## Markdown Export
 
-The Markdown export feature saves the transcript currently visible in the viewer.
+The Markdown export feature saves the transcript based on the current filter icon state.
 
-The export respects the current filter icon state. If a message type is hidden in the viewer, it is not included in the exported Markdown file.
+If a message type is hidden in the viewer, it is not included in the exported Markdown file. Collapsed blocks are exported with their full content.
 
 Search highlights and the current search query do not affect the exported Markdown output.
 
