@@ -1,14 +1,14 @@
 # Codex Chat Viewer
 
-A local desktop viewer for OpenAI Codex CLI session logs.
+A local-first desktop utility for reviewing OpenAI Codex CLI `rollout-*.jsonl` session logs.
 
-Codex Chat Viewer opens local Codex CLI JSONL session logs, usually named `rollout-*.jsonl`, and turns them into readable, filterable transcript views that you can also export to Markdown.
+Codex Chat Viewer opens local Codex CLI JSONL logs, usually stored as `rollout-*.jsonl`, and turns Codex session logs into readable, filterable transcript views that you can also export to Markdown.
 
 > Status: usable MVP
 
 ## Why?
 
-Codex CLI is useful, but its local JSONL session logs are not easy to read as-is.
+Codex CLI is useful, but its local JSONL session logs are not easy to review as-is.
 
 This project makes those logs easier to review by separating human prompts, Codex responses, tool calls, tool results, task context, and session metadata in a readable local UI.
 
@@ -26,17 +26,17 @@ If OpenAI later provides a stable official session export format, this project m
 
 ## What It Does
 
-Codex Chat Viewer is for developers who want to review local Codex CLI sessions without reading raw JSONL logs.
+Codex Chat Viewer is for developers who want a local desktop viewer for Codex CLI sessions without reading raw JSONL logs directly.
 
 The app currently focuses on:
 
-- opening local Codex rollout logs
+- opening local Codex JSONL rollout logs (`rollout-*.jsonl`)
 - switching between Terminal, Markdown, DM, and Messenger viewing styles
 - rendering readable conversation blocks
 - showing who or what produced each block
 - collapsing and expanding conversation blocks inline
 - filtering noisy sections such as tool calls, tool results, or metadata
-- searching within the currently rendered transcript
+- searching within the currently rendered session transcript
 - exporting the transcript based on the current filter icon state to Markdown
 - keeping everything local
 
