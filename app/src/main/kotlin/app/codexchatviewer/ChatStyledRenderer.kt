@@ -36,6 +36,10 @@ object ChatStyledRenderer {
 		collapsedBlockIndexes: Set<Int> = emptySet(),
 		resetCaretToTop: Boolean = true
 	): List<TranscriptHeaderRange> {
+		viewer.font = theme.viewerFont
+		viewer.background = theme.backgroundColor
+		viewer.foreground = theme.foregroundColor
+
 		val document = viewer.styledDocument
 		document.remove(0, document.length)
 		val headerRanges = mutableListOf<TranscriptHeaderRange>()
@@ -77,15 +81,17 @@ object ChatStyledRenderer {
 				val isCollapsed = index in collapsedBlockIndexes
 				val marker = if (isCollapsed) theme.toggleMarkers.collapsed else theme.toggleMarkers.expanded
 				val headerText = "$marker ${block.label}"
+				val cardWidth = cardWidthFor(headerText, block.content, blockStyle, isCollapsed)
+				val renderedHeader = cardText(headerText, blockStyle, cardWidth)
 				val headerStart = document.length
-				appendLine(document, headerText, blockStyle.labelStyle)
+				appendLine(document, renderedHeader, blockStyle.labelStyle, blockStyle)
 				headerRanges += TranscriptHeaderRange(
 					blockIndex = index,
 					startOffset = headerStart,
-					endOffset = headerStart + headerText.length
+					endOffset = headerStart + renderedHeader.length
 				)
 				if (!isCollapsed) {
-					appendLine(document, block.content, blockStyle.contentStyle)
+					appendLine(document, cardText(block.content, blockStyle, cardWidth), blockStyle.contentStyle, blockStyle)
 				}
 				if (index != blocks.lastIndex) {
 					appendBlankLine(document, theme)
@@ -117,21 +123,88 @@ object ChatStyledRenderer {
 			appendBlankLine(document, theme)
 		}
 		val blockStyle = theme.blockStyleFor(RenderedEntryKind.SYSTEM)
-		appendLine(document, RenderedEntryKind.SYSTEM.label, blockStyle.labelStyle)
-		appendLine(document, notice, blockStyle.contentStyle)
+		val cardWidth = cardWidthFor(RenderedEntryKind.SYSTEM.label, notice, blockStyle, isCollapsed = false)
+		appendLine(document, cardText(RenderedEntryKind.SYSTEM.label, blockStyle, cardWidth), blockStyle.labelStyle, blockStyle)
+		appendLine(document, cardText(notice, blockStyle, cardWidth), blockStyle.contentStyle, blockStyle)
 	}
 
 	private fun appendBlankLine(document: StyledDocument, theme: ChatRenderTheme) {
 		appendLine(document, "", theme.bodyStyle)
 	}
 
-	private fun appendLine(document: StyledDocument, text: String, textStyle: ChatTextStyle) {
+	private fun appendLine(
+		document: StyledDocument,
+		text: String,
+		textStyle: ChatTextStyle,
+		blockStyle: ChatBlockStyle? = null
+	) {
 		val attributes = SimpleAttributeSet().apply {
 			StyleConstants.setForeground(this, textStyle.color)
 			StyleConstants.setBold(this, textStyle.bold)
 			StyleConstants.setFontFamily(this, textStyle.fontFamily)
 			StyleConstants.setFontSize(this, textStyle.fontSize)
+			textStyle.backgroundColor?.let { backgroundColor ->
+				StyleConstants.setBackground(this, backgroundColor)
+			}
 		}
-		document.insertString(document.length, "$text\n", attributes)
+		val startOffset = document.length
+		document.insertString(startOffset, "$text\n", attributes)
+		document.setParagraphAttributes(
+			startOffset,
+			document.length - startOffset,
+			paragraphAttributes(blockStyle),
+			false
+		)
+	}
+
+	private fun cardWidthFor(
+		headerText: String,
+		contentText: String,
+		blockStyle: ChatBlockStyle,
+		isCollapsed: Boolean
+	): Int? {
+		if (blockStyle.horizontalPadding <= 0) {
+			return null
+		}
+
+		val contentLines = if (isCollapsed) emptyList() else contentText.renderLines()
+		val widestLine = (listOf(headerText) + contentLines)
+			.maxOfOrNull { it.length }
+			?: headerText.length
+		return maxOf(blockStyle.minimumCardWidth, widestLine)
+	}
+
+	private fun cardText(text: String, blockStyle: ChatBlockStyle, cardWidth: Int?): String {
+		if (cardWidth == null || blockStyle.horizontalPadding <= 0) {
+			return text
+		}
+
+		val padding = " ".repeat(blockStyle.horizontalPadding)
+		return text.renderLines()
+			.joinToString("\n") { line ->
+				padding + line.padEnd(cardWidth) + padding
+			}
+	}
+
+	private fun String.renderLines(): List<String> {
+		return replace("\r\n", "\n")
+			.replace('\r', '\n')
+			.split('\n')
+	}
+
+	private fun paragraphAttributes(blockStyle: ChatBlockStyle?): SimpleAttributeSet {
+		return SimpleAttributeSet().apply {
+			val alignment = when (blockStyle?.alignment ?: ChatBlockAlignment.LEFT) {
+				ChatBlockAlignment.LEFT -> StyleConstants.ALIGN_LEFT
+				ChatBlockAlignment.RIGHT -> StyleConstants.ALIGN_RIGHT
+				ChatBlockAlignment.CENTER -> StyleConstants.ALIGN_CENTER
+			}
+			StyleConstants.setAlignment(this, alignment)
+			StyleConstants.setLeftIndent(this, blockStyle?.leftIndent ?: 0f)
+			StyleConstants.setRightIndent(this, blockStyle?.rightIndent ?: 0f)
+			StyleConstants.setFirstLineIndent(this, blockStyle?.firstLineIndent ?: 0f)
+			StyleConstants.setSpaceAbove(this, blockStyle?.spaceAbove ?: 0f)
+			StyleConstants.setSpaceBelow(this, blockStyle?.spaceBelow ?: 0f)
+		}
 	}
 }

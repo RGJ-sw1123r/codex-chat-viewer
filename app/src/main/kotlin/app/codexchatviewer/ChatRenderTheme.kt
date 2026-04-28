@@ -7,12 +7,27 @@ data class ChatTextStyle(
 	val color: Color,
 	val bold: Boolean = false,
 	val fontFamily: String = Font.MONOSPACED,
-	val fontSize: Int = 14
+	val fontSize: Int = 14,
+	val backgroundColor: Color? = null
 )
+
+enum class ChatBlockAlignment {
+	LEFT,
+	RIGHT,
+	CENTER
+}
 
 data class ChatBlockStyle(
 	val labelStyle: ChatTextStyle,
-	val contentStyle: ChatTextStyle
+	val contentStyle: ChatTextStyle,
+	val alignment: ChatBlockAlignment = ChatBlockAlignment.LEFT,
+	val leftIndent: Float = 0f,
+	val rightIndent: Float = 0f,
+	val firstLineIndent: Float = 0f,
+	val spaceAbove: Float = 0f,
+	val spaceBelow: Float = 0f,
+	val horizontalPadding: Int = 0,
+	val minimumCardWidth: Int = 0
 )
 
 data class ChatToggleMarkers(
@@ -38,6 +53,13 @@ data class ChatRenderTheme(
 }
 
 object ChatRenderThemes {
+	val availableThemeNames = listOf(
+		"Terminal Style",
+		"Markdown Style",
+		"DM Style",
+		"Messenger Style"
+	)
+
 	val terminalStyle = ChatRenderTheme(
 		name = "Terminal Style",
 		backgroundColor = Color(20, 20, 20),
@@ -71,6 +93,111 @@ object ChatRenderThemes {
 		)
 	)
 
+	val markdownStyle = terminalStyle.copy(name = "Markdown Style")
+
+	val dmStyle = terminalStyle.copy(name = "DM Style")
+
+	val messengerStyle = ChatRenderTheme(
+		name = "Messenger Style",
+		backgroundColor = Color(242, 235, 221),
+		foregroundColor = Color(48, 42, 35),
+		viewerFont = Font(Font.SANS_SERIF, Font.PLAIN, 14),
+		headerStyle = ChatTextStyle(
+			color = Color(91, 80, 68),
+			bold = true,
+			fontFamily = Font.SANS_SERIF,
+			fontSize = 16
+		),
+		metadataStyle = ChatTextStyle(
+			color = Color(117, 107, 95),
+			fontFamily = Font.SANS_SERIF,
+			fontSize = 12
+		),
+		bodyStyle = ChatTextStyle(
+			color = Color(48, 42, 35),
+			fontFamily = Font.SANS_SERIF
+		),
+		separatorStyle = ChatTextStyle(
+			color = Color(199, 185, 154),
+			fontFamily = Font.SANS_SERIF,
+			fontSize = 12
+		),
+		toggleMarkers = ChatToggleMarkers(
+			expanded = "v",
+			collapsed = ">"
+		),
+		blockStyles = mapOf(
+			RenderedEntryKind.CONTEXT to centeredMessengerBlock(
+				labelColor = Color(107, 98, 85),
+				backgroundColor = Color(233, 225, 210)
+			),
+			RenderedEntryKind.TASK to centeredMessengerBlock(
+				labelColor = Color(107, 98, 85),
+				backgroundColor = Color(233, 225, 210)
+			),
+			RenderedEntryKind.YOU to ChatBlockStyle(
+				labelStyle = messengerText(
+					color = Color(92, 67, 20),
+					bold = true,
+					backgroundColor = Color(244, 214, 138)
+				),
+				contentStyle = messengerText(
+					color = Color(48, 42, 35),
+					backgroundColor = Color(244, 214, 138)
+				),
+				alignment = ChatBlockAlignment.RIGHT,
+				leftIndent = 140f,
+				rightIndent = 14f,
+				firstLineIndent = 0f,
+				spaceAbove = 8f,
+				spaceBelow = 2f,
+				horizontalPadding = 2,
+				minimumCardWidth = 26
+			),
+			RenderedEntryKind.CODEX to ChatBlockStyle(
+				labelStyle = messengerText(
+					color = Color(82, 73, 63),
+					bold = true,
+					backgroundColor = Color(255, 253, 247)
+				),
+				contentStyle = messengerText(
+					color = Color(48, 42, 35),
+					backgroundColor = Color(255, 253, 247)
+				),
+				alignment = ChatBlockAlignment.LEFT,
+				leftIndent = 14f,
+				rightIndent = 140f,
+				firstLineIndent = 0f,
+				spaceAbove = 8f,
+				spaceBelow = 2f,
+				horizontalPadding = 2,
+				minimumCardWidth = 26
+			),
+			RenderedEntryKind.TOOL_CALL to centeredMessengerBlock(
+				labelColor = Color(117, 107, 95),
+				backgroundColor = Color(221, 216, 200)
+			),
+			RenderedEntryKind.TOOL_RESULT to centeredMessengerBlock(
+				labelColor = Color(117, 107, 95),
+				backgroundColor = Color(221, 216, 200)
+			),
+			RenderedEntryKind.SYSTEM to centeredMessengerBlock(
+				labelColor = Color(107, 98, 85),
+				backgroundColor = Color(233, 225, 210)
+			)
+		)
+	)
+
+	fun byName(name: String): ChatRenderTheme {
+		return when (name) {
+			terminalStyle.name -> terminalStyle
+			markdownStyle.name -> markdownStyle
+			dmStyle.name -> dmStyle
+			messengerStyle.name -> messengerStyle
+			else -> terminalStyle
+		}
+	}
+
 	private fun blockStyle(labelColor: Color): ChatBlockStyle {
 		return ChatBlockStyle(
 			labelStyle = ChatTextStyle(
@@ -80,6 +207,44 @@ object ChatRenderThemes {
 			contentStyle = ChatTextStyle(
 				color = Color(230, 230, 230)
 			)
+		)
+	}
+
+	private fun centeredMessengerBlock(labelColor: Color, backgroundColor: Color): ChatBlockStyle {
+		return ChatBlockStyle(
+			labelStyle = messengerText(
+				color = labelColor,
+				bold = true,
+				fontSize = 12,
+				backgroundColor = backgroundColor
+			),
+			contentStyle = messengerText(
+				color = Color(117, 107, 95),
+				fontSize = 12,
+				backgroundColor = backgroundColor
+			),
+			alignment = ChatBlockAlignment.CENTER,
+			leftIndent = 120f,
+			rightIndent = 120f,
+			spaceAbove = 8f,
+			spaceBelow = 2f,
+			horizontalPadding = 2,
+			minimumCardWidth = 34
+		)
+	}
+
+	private fun messengerText(
+		color: Color,
+		bold: Boolean = false,
+		fontSize: Int = 14,
+		backgroundColor: Color
+	): ChatTextStyle {
+		return ChatTextStyle(
+			color = color,
+			bold = bold,
+			fontFamily = Font.SANS_SERIF,
+			fontSize = fontSize,
+			backgroundColor = backgroundColor
 		)
 	}
 }

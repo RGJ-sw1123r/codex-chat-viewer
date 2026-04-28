@@ -1,6 +1,8 @@
 package app.codexchatviewer
 
+import java.awt.Color
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
 
 class ChatRenderThemeTest {
@@ -10,5 +12,32 @@ class ChatRenderThemeTest {
 
 		assertEquals("Terminal Style", theme.name)
 		assertEquals(RenderedEntryKind.entries.toSet(), theme.blockStyles.keys)
+	}
+
+	@Test
+	fun availableThemeNamesExcludeTalkStyleAndIncludeMessengerStyle() {
+		assertFalse(ChatRenderThemes.availableThemeNames.contains("Talk Style"))
+		assertEquals(
+			listOf("Terminal Style", "Markdown Style", "DM Style", "Messenger Style"),
+			ChatRenderThemes.availableThemeNames
+		)
+	}
+
+	@Test
+	fun messengerStyleProvidesStylesForEveryRenderedEntryKind() {
+		val theme = ChatRenderThemes.messengerStyle
+
+		assertEquals("Messenger Style", theme.name)
+		assertEquals(RenderedEntryKind.entries.toSet(), theme.blockStyles.keys)
+		assertEquals(ChatBlockAlignment.RIGHT, theme.blockStyleFor(RenderedEntryKind.YOU).alignment)
+		assertEquals(ChatBlockAlignment.LEFT, theme.blockStyleFor(RenderedEntryKind.CODEX).alignment)
+		assertEquals(Color(242, 235, 221), theme.backgroundColor)
+		assertEquals(ChatBlockAlignment.CENTER, theme.blockStyleFor(RenderedEntryKind.SYSTEM).alignment)
+		assertEquals(ChatBlockAlignment.CENTER, theme.blockStyleFor(RenderedEntryKind.CONTEXT).alignment)
+		assertEquals(ChatBlockAlignment.CENTER, theme.blockStyleFor(RenderedEntryKind.TASK).alignment)
+		assertEquals(theme.blockStyleFor(RenderedEntryKind.SYSTEM).leftIndent, theme.blockStyleFor(RenderedEntryKind.SYSTEM).rightIndent)
+		assertEquals(2, theme.blockStyleFor(RenderedEntryKind.SYSTEM).horizontalPadding)
+		assertEquals(2, theme.blockStyleFor(RenderedEntryKind.YOU).horizontalPadding)
+		assertEquals(2, theme.blockStyleFor(RenderedEntryKind.CODEX).horizontalPadding)
 	}
 }

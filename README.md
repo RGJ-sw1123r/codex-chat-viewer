@@ -2,7 +2,7 @@
 
 A local desktop viewer for OpenAI Codex CLI session logs.
 
-Codex Chat Viewer opens local Codex CLI JSONL session logs, usually named `rollout-*.jsonl`, and turns them into readable, filterable, terminal-style conversations that you can also export to Markdown.
+Codex Chat Viewer opens local Codex CLI JSONL session logs, usually named `rollout-*.jsonl`, and turns them into readable, filterable conversations that you can also export to Markdown.
 
 > Status: usable MVP
 
@@ -67,10 +67,11 @@ The app currently focuses on:
   - `[TOOL RESULT]`
 - Duplicate suppression for known duplicate rollout event shapes
 - AGENTS.md / project instruction context separated from direct user prompts
-- Task-like prompt document content separated as `[TASK]` when safely identifiable
+- Task prompt document content separated as `[TASK]` when safely identifiable
 - UTF-8 file reading
 - Unicode-friendly viewer rendering
 - Terminal-style dark viewer
+- Messenger Style component-based chat-room rendering with right-aligned `[YOU]`, left-aligned `[CODEX]`, and centered metadata cards
 - Styled label colors for faster scanning
 - Soft-wrapped main viewer without horizontal scrolling
 - Inline collapse / expand for transcript blocks
@@ -117,8 +118,6 @@ The app currently focuses on:
   - Terminal Style refinement
   - Markdown Style
   - DM Style
-  - Talk Style
-  - Messenger Style
 - Live tail / watch mode for active Codex sessions
 - Optional support for a stable official Codex session export format, if one becomes available
 
