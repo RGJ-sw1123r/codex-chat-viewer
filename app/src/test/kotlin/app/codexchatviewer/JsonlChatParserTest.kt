@@ -69,6 +69,28 @@ class JsonlChatParserTest {
 	}
 
 	@Test
+	fun eventMsgUserMessageCharacterizationCoversYouTaskAndContextClassification() {
+		val file = writeJsonl(
+			"""
+			{"timestamp":"2026-04-25T06:16:04.894Z","type":"event_msg","payload":{"type":"user_message","message":"normal user request"}}
+			{"timestamp":"2026-04-25T06:16:05.894Z","type":"event_msg","payload":{"type":"user_message","message":"# AGENTS.md instructions for /workspace/sample\n\n<INSTRUCTIONS>\n# AGENTS.md\n\nProject instructions here.\n</INSTRUCTIONS>"}}
+			{"timestamp":"2026-04-25T06:16:06.894Z","type":"event_msg","payload":{"type":"user_message","message":"# Task\n\n## Goal\n\nProtect parser behavior.\n\nRead `AGENTS.md` first.\n\n## Constraints\n\nDo not commit or push yet.\n\n## Verification\n\nRun tests."}}
+			""".trimIndent()
+		)
+
+		val parsed = JsonlChatParser.parse(file.toFile())
+
+		assertEquals(
+			listOf(
+				RenderedEntry(RenderedEntryKind.YOU, "normal user request"),
+				RenderedEntry(RenderedEntryKind.CONTEXT, "AGENTS.md project instructions loaded"),
+				RenderedEntry(RenderedEntryKind.TASK, "Task or prompt instructions loaded")
+			),
+			parsed.entries
+		)
+	}
+
+	@Test
 	fun duplicateUserMessageAcrossEventShapesIsRenderedOnce() {
 		val file = writeJsonl(
 			"""
@@ -124,6 +146,44 @@ class JsonlChatParserTest {
 
 		assertTrue(rendered.contains("[CODEX]\nI will inspect the repo first."))
 		assertEquals(1, parsed.parsedCandidates)
+	}
+
+	@Test
+	fun eventMsgAgentMessageIsClassifiedAsCodex() {
+		val file = writeJsonl(
+			"""{"timestamp":"2026-04-25T06:16:18.951Z","type":"event_msg","payload":{"type":"agent_message","message":"I will inspect the repo first.","phase":"commentary"}}"""
+		)
+
+		val parsed = JsonlChatParser.parse(file.toFile())
+
+		assertEquals(
+			listOf(RenderedEntry(RenderedEntryKind.CODEX, "I will inspect the repo first.")),
+			parsed.entries
+		)
+	}
+
+	@Test
+	fun responseItemMessageExtractsRoleBasedEntries() {
+		val file = writeJsonl(
+			"""
+			{"timestamp":"2026-04-25T06:16:18.951Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"user side"}]}}
+			{"timestamp":"2026-04-25T06:16:19.951Z","type":"response_item","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"assistant side"}]}}
+			{"timestamp":"2026-04-25T06:16:20.951Z","type":"response_item","payload":{"type":"message","role":"tool","content":[{"type":"output_text","text":"tool output"}]}}
+			{"timestamp":"2026-04-25T06:16:21.951Z","type":"response_item","payload":{"type":"message","role":"system","content":[{"type":"output_text","text":"system note"}]}}
+			""".trimIndent()
+		)
+
+		val parsed = JsonlChatParser.parse(file.toFile())
+
+		assertEquals(
+			listOf(
+				RenderedEntry(RenderedEntryKind.YOU, "user side"),
+				RenderedEntry(RenderedEntryKind.CODEX, "assistant side"),
+				RenderedEntry(RenderedEntryKind.TOOL_RESULT, "tool output"),
+				RenderedEntry(RenderedEntryKind.SYSTEM, "system note")
+			),
+			parsed.entries
+		)
 	}
 
 	@Test
@@ -189,6 +249,45 @@ class JsonlChatParserTest {
 	}
 
 	@Test
+	fun customToolCallAndOutputAreRenderedAsToolEntries() {
+		val file = writeJsonl(
+			"""
+			{"timestamp":"2026-04-25T06:16:18.955Z","type":"response_item","payload":{"type":"custom_tool_call","name":"shell_command","input":"Get-ChildItem -Force\nGet-Location","call_id":"call_custom_123"}}
+			{"timestamp":"2026-04-25T06:16:20.253Z","type":"response_item","payload":{"type":"custom_tool_call_output","call_id":"call_custom_123","output":"Exit code: 0\nOutput:\nApp.kt"}}
+			""".trimIndent()
+		)
+
+		val parsed = JsonlChatParser.parse(file.toFile())
+
+		assertEquals(
+			listOf(
+				RenderedEntry(RenderedEntryKind.TOOL_CALL, "shell_command: Get-ChildItem -Force"),
+				RenderedEntry(RenderedEntryKind.TOOL_RESULT, "Exit code: 0\nOutput:\nApp.kt")
+			),
+			parsed.entries
+		)
+	}
+
+	@Test
+	fun sessionMetaIsExtractedAsSystemEntry() {
+		val file = writeJsonl(
+			"""{"timestamp":"2026-04-25T06:16:01.000Z","type":"session_meta","payload":{"id":"session-123","model_provider":"openai","cli_version":"1.2.3"}}"""
+		)
+
+		val parsed = JsonlChatParser.parse(file.toFile())
+
+		assertEquals(
+			listOf(
+				RenderedEntry(
+					RenderedEntryKind.SYSTEM,
+					"Session: session-123\nProvider: openai, CLI: 1.2.3"
+				)
+			),
+			parsed.entries
+		)
+	}
+
+	@Test
 	fun duplicateCodexMessageAcrossEventShapesIsRenderedOnce() {
 		val file = writeJsonl(
 			"""
@@ -218,6 +317,41 @@ class JsonlChatParserTest {
 
 		assertEquals(2, parsed.parsedCandidates)
 		assertEquals(1, "\\[TOOL RESULT\\]".toRegex().findAll(rendered).count())
+	}
+
+	@Test
+	fun duplicateEntriesWithSameStableIdPreferLongerContentAtSamePriority() {
+		val file = writeJsonl(
+			"""
+			{"timestamp":"2026-04-25T06:16:29.620Z","type":"response_item","payload":{"type":"message","id":"msg_1","role":"assistant","content":[{"type":"output_text","text":"short"}]}}
+			{"timestamp":"2026-04-25T06:16:30.620Z","type":"response_item","payload":{"type":"message","id":"msg_1","role":"assistant","content":[{"type":"output_text","text":"a much longer assistant reply"}]}}
+			""".trimIndent()
+		)
+
+		val parsed = JsonlChatParser.parse(file.toFile())
+
+		assertEquals(2, parsed.parsedCandidates)
+		assertEquals(
+			listOf(RenderedEntry(RenderedEntryKind.CODEX, "a much longer assistant reply")),
+			parsed.entries
+		)
+	}
+
+	@Test
+	fun malformedJsonlCountsEachMalformedLine() {
+		val file = writeJsonl(
+			"""
+			{"type":"event_msg","payload":{"type":"user_message","message":"safe line"}}
+			{"type":"response_item"
+			not-json-at-all
+			""".trimIndent()
+		)
+
+		val parsed = JsonlChatParser.parse(file.toFile())
+
+		assertEquals(1, parsed.parsedCandidates)
+		assertEquals(2, parsed.malformedLines)
+		assertEquals(listOf(RenderedEntry(RenderedEntryKind.YOU, "safe line")), parsed.entries)
 	}
 
 	@Test
