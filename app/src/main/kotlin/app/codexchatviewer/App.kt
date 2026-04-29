@@ -18,8 +18,6 @@ import java.awt.event.KeyEvent
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.io.File
-import java.nio.charset.StandardCharsets
-import java.nio.file.Files
 import javax.swing.AbstractAction
 import javax.swing.BorderFactory
 import javax.swing.Icon
@@ -29,7 +27,6 @@ import javax.swing.JComponent
 import javax.swing.JFileChooser
 import javax.swing.JFrame
 import javax.swing.JLabel
-import javax.swing.JOptionPane
 import javax.swing.JPanel
 import javax.swing.JScrollPane
 import javax.swing.Scrollable
@@ -75,6 +72,10 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 	private val transcriptRenderController = TranscriptRenderController(chatArea, componentTranscriptPanel)
 	private val transcriptScrollPane = JScrollPane()
 	private val transcriptScrollController = TranscriptScrollController(transcriptScrollPane, chatArea)
+	private val markdownExportController = MarkdownExportController(
+		parent = this,
+		fallbackDirectory = ::resolveInitialDirectory
+	)
 	private val showYouToggle = createFilterToggle("YOU", PersonFilterIcon())
 	private val showCodexToggle = createFilterToggle("CODEX", RobotFilterIcon())
 	private val showToolCallToggle = createFilterToggle("TOOL CALL", TerminalFilterIcon())
@@ -514,35 +515,22 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 			return
 		}
 
-		val chooser = JFileChooser(sourceFile.parentFile ?: resolveInitialDirectory())
-		chooser.dialogTitle = "Export Markdown"
-		chooser.fileFilter = FileNameExtensionFilter("Markdown files (*.md)", "md")
-		chooser.setAcceptAllFileFilterUsed(true)
-		chooser.selectedFile = suggestedMarkdownExportFile(sourceFile, chooser.currentDirectory)
-
-		val result = chooser.showSaveDialog(this)
-		if (result != JFileChooser.APPROVE_OPTION) {
-			return
-		}
-
-		val targetFile = ensureMarkdownExtension(chooser.selectedFile ?: return)
-		if (targetFile.exists() && !confirmOverwrite(targetFile)) {
-			return
-		}
-
-		try {
-			targetFile.parentFile?.mkdirs()
-			val markdown = MarkdownTranscriptExporter.export(
+		when (val result = markdownExportController.export(
+			MarkdownExportRequest(
 				sourceFile = sourceFile,
 				sessionId = currentSessionId,
-				chatLog = filteredChatLog
+				chatLog = filteredChatLog,
+				initialDirectory = lastSelectedDirectory
 			)
-			Files.writeString(targetFile.toPath(), markdown, StandardCharsets.UTF_8)
-			lastSelectedDirectory = targetFile.parentFile
-			openExplorerSelection(targetFile)
-			appendViewerNotice("Markdown exported to ${targetFile.absolutePath}")
-		} catch (exception: Exception) {
-			appendViewerNotice("Markdown export failed: ${exception.message ?: exception.javaClass.simpleName}")
+		)) {
+			MarkdownExportOutcome.Cancelled -> return
+			is MarkdownExportOutcome.Success -> {
+				lastSelectedDirectory = result.file.parentFile
+				appendViewerNotice(result.noticeMessage)
+			}
+			is MarkdownExportOutcome.Failure -> {
+				appendViewerNotice(result.noticeMessage)
+			}
 		}
 	}
 
@@ -566,53 +554,6 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 
 	private fun currentRenderMode(): TranscriptRenderMode {
 		return transcriptRenderController.renderModeFor(currentTheme())
-	}
-
-	private fun defaultMarkdownExportName(sourceFile: File): String {
-		return sourceFile.nameWithoutExtension + ".md"
-	}
-
-	private fun suggestedMarkdownExportFile(sourceFile: File, directory: File?): File {
-		val baseDirectory = directory ?: sourceFile.parentFile ?: resolveInitialDirectory()
-		val defaultName = defaultMarkdownExportName(sourceFile)
-		val defaultFile = File(baseDirectory, defaultName)
-		if (!defaultFile.exists()) {
-			return defaultFile
-		}
-
-		val baseName = sourceFile.nameWithoutExtension
-		var index = 1
-		while (true) {
-			val candidate = File(baseDirectory, "$baseName ($index).md")
-			if (!candidate.exists()) {
-				return candidate
-			}
-			index += 1
-		}
-	}
-
-	private fun ensureMarkdownExtension(file: File): File {
-		return if (file.name.lowercase().endsWith(".md")) file else File(file.parentFile, file.name + ".md")
-	}
-
-	private fun confirmOverwrite(file: File): Boolean {
-		val result = JOptionPane.showConfirmDialog(
-			this,
-			"${file.name} already exists.\nDo you want to overwrite it?",
-			"Overwrite Markdown Export",
-			JOptionPane.YES_NO_OPTION,
-			JOptionPane.WARNING_MESSAGE
-		)
-		return result == JOptionPane.YES_OPTION
-	}
-
-	private fun openExplorerSelection(file: File) {
-		try {
-			ProcessBuilder("explorer.exe", "/select,", file.absolutePath)
-				.start()
-		} catch (_: Exception) {
-			// Export success should not depend on Explorer opening successfully.
-		}
 	}
 
 	private fun installSearchShortcuts() {
