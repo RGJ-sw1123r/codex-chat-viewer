@@ -117,9 +117,9 @@ The app currently focuses on:
 
 ### Planned
 
-- Terminal Style refinement
-- Live tail / watch mode for active Codex sessions
-- Optional support for a stable official Codex session export format, if one becomes available
+- Live service support for active Codex sessions:
+  - detect updates from the currently opened JSONL session file and append newly parsed entries to the current transcript
+  - or provide a separate live file mode so live parsing can stay independent from the static viewer flow
 
 ## Markdown Export
 
