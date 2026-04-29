@@ -99,6 +99,43 @@ class MarkdownDocumentRendererTest {
 		assertTrue(toolSection.preferredSize.height >= toolContent.preferredSize.height)
 	}
 
+	@Test
+	fun markdownStyleSmokeUsesWrappingTextComponentWithoutTruncatingLongContent() {
+		val longContent = (1..30).joinToString(" ") { "paragraph-token-$it" }
+		val panel = JPanel()
+		val result = MarkdownDocumentRenderer.render(
+			container = panel,
+			file = File("rollout-markdown.jsonl"),
+			sessionId = "session-markdown",
+			parsedChatLog = ParsedChatLog(
+				entries = listOf(
+					RenderedEntry(RenderedEntryKind.CODEX, longContent),
+					RenderedEntry(RenderedEntryKind.SYSTEM, "Meta note")
+				),
+				parsedCandidates = 2,
+				ignoredLines = 0,
+				malformedLines = 0,
+				observedEventCounts = emptyMap()
+			),
+			theme = ChatRenderThemes.markdownStyle,
+			viewportWidth = 420
+		)
+
+		val codexContent = requireComponent(panel, "markdown-content-CODEX") as JTextArea
+		val metaContent = requireComponent(panel, "markdown-content-SYSTEM") as JTextArea
+
+		assertEquals("WrappingTextArea", codexContent.javaClass.simpleName)
+		assertEquals(longContent, codexContent.text)
+		assertEquals("Meta note", metaContent.text)
+		assertTrue(codexContent.lineWrap)
+		assertTrue(codexContent.wrapStyleWord)
+		assertTrue(result.transcriptText.contains("v [CODEX]\n$longContent"))
+		assertEquals(
+			listOf("markdown-section-CODEX", "markdown-section-SYSTEM"),
+			result.blockRanges.map { it.component.getComponent(0).name }
+		)
+	}
+
 	private fun sampleLog(): ParsedChatLog {
 		return ParsedChatLog(
 			entries = listOf(

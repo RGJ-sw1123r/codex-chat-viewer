@@ -111,6 +111,49 @@ class MessengerChatRendererTest {
 	}
 
 	@Test
+	fun messengerStyleSmokeRendersYouCodexAndMetaToolBlocksAsComponents() {
+		val panel = JPanel()
+		val log = ParsedChatLog(
+			entries = listOf(
+				RenderedEntry(RenderedEntryKind.YOU, "User content"),
+				RenderedEntry(RenderedEntryKind.CODEX, "Assistant content"),
+				RenderedEntry(RenderedEntryKind.TOOL_CALL, "gradlew.bat test"),
+				RenderedEntry(RenderedEntryKind.SYSTEM, "System note")
+			),
+			parsedCandidates = 4,
+			ignoredLines = 0,
+			malformedLines = 0,
+			observedEventCounts = emptyMap()
+		)
+
+		val result = MessengerChatRenderer.render(
+			container = panel,
+			file = File("rollout-smoke.jsonl"),
+			sessionId = "session-smoke",
+			parsedChatLog = log,
+			theme = ChatRenderThemes.messengerStyle
+		)
+
+		assertEquals("User content", (requireComponent(panel, "messenger-content-YOU") as JTextArea).text)
+		assertEquals("Assistant content", (requireComponent(panel, "messenger-content-CODEX") as JTextArea).text)
+		assertEquals("gradlew.bat test", (requireComponent(panel, "messenger-content-TOOL_CALL") as JTextArea).text)
+		assertEquals("System note", (requireComponent(panel, "messenger-content-SYSTEM") as JTextArea).text)
+		assertTrue(result.transcriptText.contains("v [YOU]\nUser content"))
+		assertTrue(result.transcriptText.contains("v [CODEX]\nAssistant content"))
+		assertTrue(result.transcriptText.contains("v [TOOL CALL]\ngradlew.bat test"))
+		assertTrue(result.transcriptText.contains("v [SYSTEM]\nSystem note"))
+		assertEquals(
+			listOf(
+				"messenger-row-YOU",
+				"messenger-row-CODEX",
+				"messenger-row-TOOL_CALL",
+				"messenger-row-SYSTEM"
+			),
+			result.blockRanges.map { it.component.name }
+		)
+	}
+
+	@Test
 	fun shrinksBubbleWidthsBelowMinimumWhenViewportIsTooNarrow() {
 		val panel = JPanel()
 		MessengerChatRenderer.render(
