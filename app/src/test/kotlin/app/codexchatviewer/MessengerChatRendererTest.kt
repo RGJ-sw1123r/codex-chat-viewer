@@ -48,6 +48,10 @@ class MessengerChatRendererTest {
 		assertTrue(youContent.lineWrap)
 		assertTrue(result.transcriptText.contains("v [YOU]\nLine one\nLine two"))
 		assertEquals(3, result.blockRanges.size)
+		val firstTextRange = result.blockRanges.first().textRanges.single()
+		assertSame(youContent, firstTextRange.textComponent)
+		assertEquals(result.transcriptText.indexOf("Line one"), firstTextRange.transcriptStartOffset)
+		assertEquals(result.transcriptText.indexOf("Line two") + "Line two".length, firstTextRange.transcriptEndOffset)
 	}
 
 	@Test
@@ -204,6 +208,25 @@ class MessengerChatRendererTest {
 		}
 
 		assertEquals(0, clickedBlockIndex)
+	}
+
+	@Test
+	fun collapsedMessengerBlockKeepsBlockRangeWithoutTextRange() {
+		val panel = JPanel()
+		val result = MessengerChatRenderer.render(
+			container = panel,
+			file = File("rollout-test.jsonl"),
+			sessionId = "session-123",
+			parsedChatLog = sampleLog(),
+			theme = ChatRenderThemes.messengerStyle,
+			collapsedBlockIndexes = setOf(0)
+		)
+
+		val firstBlockRange = result.blockRanges.first()
+
+		assertTrue(result.transcriptText.contains("> [YOU]"))
+		assertTrue(firstBlockRange.textRanges.isEmpty())
+		assertTrue(firstBlockRange.startOffset < firstBlockRange.endOffset)
 	}
 
 	private fun sampleLog(): ParsedChatLog {

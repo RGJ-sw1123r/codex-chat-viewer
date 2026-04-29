@@ -37,6 +37,8 @@ import javax.swing.SwingUtilities
 import javax.swing.ScrollPaneConstants
 import javax.swing.filechooser.FileNameExtensionFilter
 import javax.swing.text.DefaultHighlighter
+import javax.swing.text.JTextComponent
+import javax.swing.border.Border
 import kotlin.math.abs
 
 fun main() {
@@ -89,7 +91,8 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 	)
 	private var componentRenderedText = ""
 	private var componentBlockRanges: List<ComponentBlockRange> = emptyList()
-	private var componentSearchHighlightedComponent: JComponent? = null
+	private val componentSearchHighlightTags = mutableListOf<ComponentSearchHighlightTag>()
+	private val componentFallbackHighlightedBorders = mutableMapOf<JComponent, Border?>()
 	private var lastComponentRenderViewportWidth = 0
 
 	init {
@@ -636,15 +639,19 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 		val currentMatch = searchState.currentMatch() ?: return
 
 		if (currentRenderMode() == TranscriptRenderMode.COMPONENT) {
-			val blockRange = componentBlockRanges.firstOrNull { range ->
-				currentMatch.start >= range.startOffset && currentMatch.start < range.endOffset
-			} ?: return
-			componentSearchHighlightedComponent = blockRange.component
-			blockRange.component.border = BorderFactory.createCompoundBorder(
-				BorderFactory.createLineBorder(Color(255, 213, 79), 2),
-				BorderFactory.createEmptyBorder(5, 4, 5, 4)
-			)
-			blockRange.component.repaint()
+			searchState.matches.forEachIndexed { index, match ->
+				val mappedRange = componentTextRangeFor(match) ?: return@forEachIndexed
+				val painter = if (index == searchState.currentIndex) currentSearchResultPainter else searchResultPainter
+				val highlightTag = mappedRange.textComponent.highlighter.addHighlight(
+					mappedRange.startOffset,
+					mappedRange.endOffset,
+					painter
+				)
+				componentSearchHighlightTags += ComponentSearchHighlightTag(mappedRange.textComponent, highlightTag)
+			}
+			if (componentTextRangeFor(currentMatch) == null) {
+				applyComponentFallbackHighlight(currentMatch)
+			}
 			return
 		}
 
@@ -660,15 +667,26 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 		val highlighter = chatArea.highlighter
 		searchHighlightTags.forEach(highlighter::removeHighlight)
 		searchHighlightTags.clear()
-		componentSearchHighlightedComponent?.let { component ->
-			component.border = BorderFactory.createEmptyBorder(5, 4, 5, 4)
+		componentSearchHighlightTags.forEach { tag ->
+			tag.textComponent.highlighter.removeHighlight(tag.highlightTag)
+		}
+		componentSearchHighlightTags.clear()
+		componentFallbackHighlightedBorders.forEach { (component, border) ->
+			component.border = border
 			component.repaint()
 		}
-		componentSearchHighlightedComponent = null
+		componentFallbackHighlightedBorders.clear()
 	}
 
 	private fun scrollToSearchMatch(match: SearchMatch) {
 		if (currentRenderMode() == TranscriptRenderMode.COMPONENT) {
+			componentTextRangeFor(match)?.let { mappedRange ->
+				transcriptScrollController.scrollTextComponentOffsetIntoView(
+					mappedRange.textComponent,
+					mappedRange.startOffset
+				)
+				return
+			}
 			val blockRange = componentBlockRanges.firstOrNull { range ->
 				match.start >= range.startOffset && match.start < range.endOffset
 			} ?: return
@@ -677,6 +695,31 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 		}
 
 		transcriptScrollController.scrollTextOffsetIntoView(match.start)
+	}
+
+	private fun componentTextRangeFor(match: SearchMatch): ComponentMappedTextRange? {
+		componentBlockRanges.forEach { blockRange ->
+			blockRange.textRanges.forEach { textRange ->
+				if (match.start >= textRange.transcriptStartOffset && match.end <= textRange.transcriptEndOffset) {
+					val startOffset = textRange.componentStartOffset + (match.start - textRange.transcriptStartOffset)
+					val endOffset = textRange.componentStartOffset + (match.end - textRange.transcriptStartOffset)
+					return ComponentMappedTextRange(textRange.textComponent, startOffset, endOffset)
+				}
+			}
+		}
+		return null
+	}
+
+	private fun applyComponentFallbackHighlight(match: SearchMatch) {
+		val blockRange = componentBlockRanges.firstOrNull { range ->
+			match.start >= range.startOffset && match.start < range.endOffset
+		} ?: return
+		componentFallbackHighlightedBorders.putIfAbsent(blockRange.component, blockRange.component.border)
+		blockRange.component.border = BorderFactory.createCompoundBorder(
+			BorderFactory.createLineBorder(Color(255, 213, 79), 2),
+			BorderFactory.createEmptyBorder(5, 4, 5, 4)
+		)
+		blockRange.component.repaint()
 	}
 
 	private fun currentRenderedText(): String {
@@ -688,6 +731,17 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 		return document.getText(0, document.length)
 	}
 }
+
+private data class ComponentSearchHighlightTag(
+	val textComponent: JTextComponent,
+	val highlightTag: Any
+)
+
+private data class ComponentMappedTextRange(
+	val textComponent: JTextComponent,
+	val startOffset: Int,
+	val endOffset: Int
+)
 
 private class WrappedTextPane : JTextPane() {
 	override fun getScrollableTracksViewportWidth(): Boolean {

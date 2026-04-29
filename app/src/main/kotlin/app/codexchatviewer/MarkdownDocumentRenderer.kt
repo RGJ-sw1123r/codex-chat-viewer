@@ -17,6 +17,7 @@ import javax.swing.JComponent
 import javax.swing.JLabel
 import javax.swing.JPanel
 import javax.swing.JTextArea
+import javax.swing.text.JTextComponent
 
 object MarkdownDocumentRenderer {
 	private const val separator = "========================================================================"
@@ -93,14 +94,18 @@ object MarkdownDocumentRenderer {
 				val blockStart = transcript.length
 				appendTranscriptLine(transcript, headerText)
 				headerRanges += TranscriptHeaderRange(index, blockStart, blockStart + headerText.length)
+				var contentStart: Int? = null
+				var contentEnd: Int? = null
 				if (!isCollapsed) {
+					contentStart = transcript.length
 					appendTranscriptLine(transcript, block.content)
+					contentEnd = contentStart + block.content.length
 				}
 				if (index != blocks.lastIndex) {
 					appendTranscriptLine(transcript, "")
 				}
 
-				val section = createBlockSection(
+				val renderedBlock = createBlockSection(
 					block = block,
 					headerText = headerText,
 					isCollapsed = isCollapsed,
@@ -108,8 +113,14 @@ object MarkdownDocumentRenderer {
 					documentWidth = documentWidth,
 					onHeaderClicked = { onHeaderClicked(index) }
 				)
+				val textRanges = if (contentStart != null && contentEnd != null && renderedBlock.contentComponent != null) {
+					listOf(ComponentTextRange(contentStart, contentEnd, renderedBlock.contentComponent))
+				} else {
+					emptyList()
+				}
+				val section = renderedBlock.component
 				document.add(section)
-				blockRanges += ComponentBlockRange(index, blockStart, transcript.length, section)
+				blockRanges += ComponentBlockRange(index, blockStart, transcript.length, section, textRanges)
 			}
 			appendTranscriptLine(transcript, "")
 			appendTranscriptLine(transcript, "")
@@ -185,7 +196,7 @@ object MarkdownDocumentRenderer {
 			isCollapsed = false,
 			documentWidth = documentWidth,
 			onHeaderClicked = null
-		)
+		).component
 	}
 
 	private fun createBlockSection(
@@ -195,7 +206,7 @@ object MarkdownDocumentRenderer {
 		theme: ChatRenderTheme,
 		documentWidth: Int,
 		onHeaderClicked: () -> Unit
-	): JComponent {
+	): RenderedMarkdownBlock {
 		return createSection(
 			name = "markdown-section-${block.type.name}",
 			headerText = headerText,
@@ -217,7 +228,7 @@ object MarkdownDocumentRenderer {
 		isCollapsed: Boolean,
 		documentWidth: Int,
 		onHeaderClicked: (() -> Unit)?
-	): JComponent {
+	): RenderedMarkdownBlock {
 		val section = JPanel(BorderLayout(0, 8))
 		section.name = name
 		section.background = style.contentStyle.backgroundColor ?: Color.WHITE
@@ -243,6 +254,7 @@ object MarkdownDocumentRenderer {
 		}
 		section.add(header, BorderLayout.NORTH)
 
+		var contentComponent: JTextArea? = null
 		if (!isCollapsed) {
 			val textWidth = (documentWidth - sectionHorizontalChrome).coerceAtLeast(120)
 			val area = WrappingTextArea(content, textWidth)
@@ -255,6 +267,7 @@ object MarkdownDocumentRenderer {
 			area.wrapStyleWord = !isTechnicalBlock(type)
 			area.border = BorderFactory.createEmptyBorder(0, 0, 0, 0)
 			section.add(area, BorderLayout.CENTER)
+			contentComponent = area
 		}
 
 		section.maximumSize = Dimension(Int.MAX_VALUE, Int.MAX_VALUE)
@@ -263,7 +276,7 @@ object MarkdownDocumentRenderer {
 		wrapper.border = BorderFactory.createEmptyBorder(0, 0, 12, 0)
 		wrapper.add(section, BorderLayout.CENTER)
 		wrapper.maximumSize = Dimension(Int.MAX_VALUE, Int.MAX_VALUE)
-		return wrapper
+		return RenderedMarkdownBlock(wrapper, contentComponent)
 	}
 
 	private fun addDocument(container: JPanel, document: JPanel) {
@@ -317,6 +330,11 @@ private class FixedWidthPanel(
 		return Dimension(fixedWidth, Int.MAX_VALUE)
 	}
 }
+
+private data class RenderedMarkdownBlock(
+	val component: JComponent,
+	val contentComponent: JTextComponent?
+)
 
 private class WrappingTextArea(
 	text: String,

@@ -20,12 +20,21 @@ import javax.swing.JComponent
 import javax.swing.JLabel
 import javax.swing.JPanel
 import javax.swing.JTextArea
+import javax.swing.text.JTextComponent
+
+data class ComponentTextRange(
+	val transcriptStartOffset: Int,
+	val transcriptEndOffset: Int,
+	val textComponent: JTextComponent,
+	val componentStartOffset: Int = 0
+)
 
 data class ComponentBlockRange(
 	val blockIndex: Int,
 	val startOffset: Int,
 	val endOffset: Int,
-	val component: JComponent
+	val component: JComponent,
+	val textRanges: List<ComponentTextRange> = emptyList()
 )
 
 data class ComponentRenderResult(
@@ -112,14 +121,18 @@ object MessengerChatRenderer {
 				val headerStart = blockStart
 				val headerEnd = headerStart + headerText.length
 				headerRanges += TranscriptHeaderRange(index, headerStart, headerEnd)
+				var contentStart: Int? = null
+				var contentEnd: Int? = null
 				if (!isCollapsed) {
+					contentStart = transcript.length
 					appendTranscriptLine(transcript, block.content)
+					contentEnd = contentStart + block.content.length
 				}
 				if (index != blocks.lastIndex) {
 					appendTranscriptLine(transcript, "")
 				}
 
-				val row = createBlockRow(
+				val renderedBlock = createBlockRow(
 					block = block,
 					headerText = headerText,
 					isCollapsed = isCollapsed,
@@ -127,8 +140,14 @@ object MessengerChatRenderer {
 					layoutWidths = layoutWidths,
 					onHeaderClicked = { onHeaderClicked(index) }
 				)
+				val textRanges = if (contentStart != null && contentEnd != null && renderedBlock.contentComponent != null) {
+					listOf(ComponentTextRange(contentStart, contentEnd, renderedBlock.contentComponent))
+				} else {
+					emptyList()
+				}
+				val row = renderedBlock.component
 				container.add(row)
-				blockRanges += ComponentBlockRange(index, blockStart, transcript.length, row)
+				blockRanges += ComponentBlockRange(index, blockStart, transcript.length, row, textRanges)
 			}
 			appendTranscriptLine(transcript, "")
 			appendTranscriptLine(transcript, "")
@@ -177,7 +196,7 @@ object MessengerChatRenderer {
 		blockStyle: ChatBlockStyle,
 		layoutWidths: MessengerLayoutWidths,
 		onHeaderClicked: () -> Unit
-	): JComponent {
+	): RenderedComponentBlock {
 		val row = JPanel(BorderLayout())
 		row.name = "messenger-row-${block.type.name}"
 		row.isOpaque = false
@@ -208,6 +227,7 @@ object MessengerChatRenderer {
 		})
 		bubble.add(header, BorderLayout.NORTH)
 
+		var contentComponent: JTextArea? = null
 		if (!isCollapsed) {
 			val content = JTextArea(block.content)
 			content.name = "messenger-content-${block.type.name}"
@@ -225,6 +245,7 @@ object MessengerChatRenderer {
 			content.border = BorderFactory.createEmptyBorder(0, 0, 0, 0)
 			content.alignmentX = Component.LEFT_ALIGNMENT
 			bubble.add(content, BorderLayout.CENTER)
+			contentComponent = content
 		}
 
 		when (blockStyle.alignment) {
@@ -239,7 +260,7 @@ object MessengerChatRenderer {
 		}
 
 		row.maximumSize = Dimension(Int.MAX_VALUE, row.preferredSize.height)
-		return row
+		return RenderedComponentBlock(row, contentComponent)
 	}
 
 	private fun addNoticeCard(container: JPanel, text: String, theme: ChatRenderTheme, layoutWidths: MessengerLayoutWidths) {
@@ -305,6 +326,11 @@ object MessengerChatRenderer {
 		transcript.append(text).append('\n')
 	}
 }
+
+private data class RenderedComponentBlock(
+	val component: JComponent,
+	val contentComponent: JTextComponent?
+)
 
 data class MessengerLayoutWidths(
 	val message: Int,

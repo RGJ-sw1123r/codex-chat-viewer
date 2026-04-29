@@ -41,6 +41,11 @@ class MarkdownDocumentRendererTest {
 		assertTrue(toolContent.font.family.contains("Monospaced") || toolContent.font.family.contains("Courier"))
 		assertTrue(result.transcriptText.contains("v [YOU]\nUser request"))
 		assertEquals(3, result.blockRanges.size)
+		val firstTextRange = result.blockRanges.first().textRanges.single()
+		assertEquals(result.transcriptText.indexOf("User request"), firstTextRange.transcriptStartOffset)
+		assertEquals(result.transcriptText.indexOf("User request") + "User request".length, firstTextRange.transcriptEndOffset)
+		assertEquals(0, firstTextRange.componentStartOffset)
+		assertEquals(youContent, firstTextRange.textComponent)
 	}
 
 	@Test
@@ -134,6 +139,25 @@ class MarkdownDocumentRendererTest {
 			listOf("markdown-section-CODEX", "markdown-section-SYSTEM"),
 			result.blockRanges.map { it.component.getComponent(0).name }
 		)
+	}
+
+	@Test
+	fun collapsedMarkdownBlockKeepsBlockRangeWithoutTextRange() {
+		val panel = JPanel()
+		val result = MarkdownDocumentRenderer.render(
+			container = panel,
+			file = File("rollout-test.jsonl"),
+			sessionId = "session-123",
+			parsedChatLog = sampleLog(),
+			theme = ChatRenderThemes.markdownStyle,
+			collapsedBlockIndexes = setOf(0)
+		)
+
+		val firstBlockRange = result.blockRanges.first()
+
+		assertTrue(result.transcriptText.contains("> [YOU]"))
+		assertTrue(firstBlockRange.textRanges.isEmpty())
+		assertTrue(firstBlockRange.startOffset < firstBlockRange.endOffset)
 	}
 
 	private fun sampleLog(): ParsedChatLog {

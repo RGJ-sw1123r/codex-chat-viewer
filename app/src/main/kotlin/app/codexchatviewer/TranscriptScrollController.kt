@@ -4,6 +4,7 @@ import java.awt.Rectangle
 import javax.swing.JComponent
 import javax.swing.JScrollPane
 import javax.swing.JTextPane
+import javax.swing.text.JTextComponent
 import kotlin.math.roundToInt
 
 data class TranscriptScrollAnchor(
@@ -69,5 +70,12 @@ class TranscriptScrollController(
 		textViewer.caretPosition = offset
 		val bounds = textViewer.modelToView2D(offset)?.bounds ?: return
 		textViewer.scrollRectToVisible(bounds)
+	}
+
+	fun scrollTextComponentOffsetIntoView(textComponent: JTextComponent, offset: Int) {
+		val safeOffset = offset.coerceIn(0, textComponent.document.length)
+		textComponent.caretPosition = safeOffset
+		val bounds = textComponent.modelToView2D(safeOffset)?.bounds ?: return
+		textComponent.scrollRectToVisible(bounds)
 	}
 }
