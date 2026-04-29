@@ -74,7 +74,7 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 	private val resumeCommandLabel = JLabel("Resume Command: Not available")
 	private val copyResumeCommandButton = JButton("Copy Resume Command")
 	private val chatArea = WrappedTextPane()
-	private val messengerPanel = MessengerPanel()
+	private val componentTranscriptPanel = ComponentTranscriptPanel()
 	private val transcriptScrollPane = JScrollPane()
 	private val showYouToggle = createFilterToggle("YOU", PersonFilterIcon())
 	private val showCodexToggle = createFilterToggle("CODEX", RobotFilterIcon())
@@ -87,10 +87,10 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 		onNext = ::goToNextSearchResult,
 		onClose = ::closeSearch
 	)
-	private var messengerRenderedText = ""
-	private var messengerBlockRanges: List<MessengerBlockRange> = emptyList()
-	private var messengerSearchHighlightedComponent: JComponent? = null
-	private var lastMessengerRenderViewportWidth = 0
+	private var componentRenderedText = ""
+	private var componentBlockRanges: List<ComponentBlockRange> = emptyList()
+	private var componentSearchHighlightedComponent: JComponent? = null
+	private var lastComponentRenderViewportWidth = 0
 
 	init {
 		defaultCloseOperation = EXIT_ON_CLOSE
@@ -376,18 +376,18 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 		val file = currentSelectedFile
 		val parsed = currentParsedChatLog
 		if (file == null || parsed == null) {
-			if (usesComponentChatRenderer()) {
-				showMessengerView()
+			if (usesComponentRenderer()) {
+				showComponentView()
 				val result = renderComponentTranscript(file = null, parsedChatLog = null)
 				transcriptHeaderRanges = result.headerRanges
-				messengerRenderedText = result.transcriptText
-				messengerBlockRanges = result.blockRanges
-				lastMessengerRenderViewportWidth = currentTranscriptViewportWidth()
+				componentRenderedText = result.transcriptText
+				componentBlockRanges = result.blockRanges
+				lastComponentRenderViewportWidth = currentTranscriptViewportWidth()
 			} else {
-				showTextView()
+				showTerminalTextView()
 				ChatStyledRenderer.render(chatArea, null, null, null, currentTheme())
-				messengerRenderedText = ""
-				messengerBlockRanges = emptyList()
+				componentRenderedText = ""
+				componentBlockRanges = emptyList()
 			}
 			transcriptHeaderRanges = emptyList()
 			clearSearchHighlights()
@@ -396,18 +396,18 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 
 		val filteredChatLog = currentFilteredChatLog() ?: return
 
-		if (usesComponentChatRenderer()) {
-			showMessengerView()
+		if (usesComponentRenderer()) {
+			showComponentView()
 			val result = renderComponentTranscript(file = file, parsedChatLog = filteredChatLog)
 			transcriptHeaderRanges = result.headerRanges
-			messengerRenderedText = result.transcriptText
-			messengerBlockRanges = result.blockRanges
-			lastMessengerRenderViewportWidth = currentTranscriptViewportWidth()
+			componentRenderedText = result.transcriptText
+			componentBlockRanges = result.blockRanges
+			lastComponentRenderViewportWidth = currentTranscriptViewportWidth()
 			if (resetCaretToTop) {
 				scrollTranscriptToTop()
 			}
 		} else {
-			showTextView()
+			showTerminalTextView()
 			transcriptHeaderRanges = ChatStyledRenderer.render(
 				viewer = chatArea,
 				file = file,
@@ -417,8 +417,8 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 				collapsedBlockIndexes = collapsedBlockIndexes,
 				resetCaretToTop = resetCaretToTop
 			)
-			messengerRenderedText = ""
-			messengerBlockRanges = emptyList()
+			componentRenderedText = ""
+			componentBlockRanges = emptyList()
 		}
 		refreshSearchHighlights(preserveCurrentIndex = true)
 		if (scrollAnchor != null) {
@@ -428,40 +428,40 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 		}
 	}
 
-	private fun renderComponentTranscript(file: File?, parsedChatLog: ParsedChatLog?): MessengerRenderResult {
+	private fun renderComponentTranscript(file: File?, parsedChatLog: ParsedChatLog?): ComponentRenderResult {
 		val theme = currentTheme()
 		return if (theme.name == ChatRenderThemes.markdownStyle.name) {
 			MarkdownDocumentRenderer.render(
-				container = messengerPanel,
+				container = componentTranscriptPanel,
 				file = file,
 				sessionId = currentSessionId,
 				parsedChatLog = parsedChatLog,
 				theme = theme,
 				viewportWidth = currentTranscriptViewportWidth(),
 				collapsedBlockIndexes = collapsedBlockIndexes,
-				onHeaderClicked = ::toggleMessengerBlock
+				onHeaderClicked = ::toggleComponentBlock
 			)
 		} else {
 			MessengerChatRenderer.render(
-				container = messengerPanel,
+				container = componentTranscriptPanel,
 				file = file,
 				sessionId = currentSessionId,
 				parsedChatLog = parsedChatLog,
 				theme = theme,
 				viewportWidth = currentTranscriptViewportWidth(),
 				collapsedBlockIndexes = collapsedBlockIndexes,
-				onHeaderClicked = ::toggleMessengerBlock
+				onHeaderClicked = ::toggleComponentBlock
 			)
 		}
 	}
 
 	private fun handleTranscriptViewportResize() {
-		if (!usesComponentChatRenderer()) {
+		if (!usesComponentRenderer()) {
 			return
 		}
 
 		val viewportWidth = currentTranscriptViewportWidth()
-		if (viewportWidth <= 0 || abs(viewportWidth - lastMessengerRenderViewportWidth) < 12) {
+		if (viewportWidth <= 0 || abs(viewportWidth - lastComponentRenderViewportWidth) < 12) {
 			return
 		}
 
@@ -480,7 +480,7 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 		}
 	}
 
-	private fun showTextView() {
+	private fun showTerminalTextView() {
 		if (transcriptScrollPane.viewport.view !== chatArea) {
 			transcriptScrollPane.setViewportView(chatArea)
 		}
@@ -488,9 +488,9 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 		transcriptScrollPane.verticalScrollBar.blockIncrement = 80
 	}
 
-	private fun showMessengerView() {
-		if (transcriptScrollPane.viewport.view !== messengerPanel) {
-			transcriptScrollPane.setViewportView(messengerPanel)
+	private fun showComponentView() {
+		if (transcriptScrollPane.viewport.view !== componentTranscriptPanel) {
+			transcriptScrollPane.setViewportView(componentTranscriptPanel)
 		}
 		transcriptScrollPane.verticalScrollBar.unitIncrement = 36
 		transcriptScrollPane.verticalScrollBar.blockIncrement = 220
@@ -517,7 +517,7 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 		}
 	}
 
-	private fun toggleMessengerBlock(blockIndex: Int) {
+	private fun toggleComponentBlock(blockIndex: Int) {
 		val viewportAnchor = viewportAnchorForCurrentPosition()
 		if (!collapsedBlockIndexes.add(blockIndex)) {
 			collapsedBlockIndexes.remove(blockIndex)
@@ -626,26 +626,26 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 	}
 
 	private fun appendViewerNotice(notice: String) {
-		if (usesComponentChatRenderer()) {
-			showMessengerView()
+		if (usesComponentRenderer()) {
+			showComponentView()
 			if (currentTheme().name == ChatRenderThemes.markdownStyle.name) {
 				MarkdownDocumentRenderer.appendSystemNotice(
-					messengerPanel,
+					componentTranscriptPanel,
 					notice,
 					currentTheme(),
 					viewportWidth = currentTranscriptViewportWidth()
 				)
 			} else {
 				MessengerChatRenderer.appendSystemNotice(
-					messengerPanel,
+					componentTranscriptPanel,
 					notice,
 					currentTheme(),
 					viewportWidth = currentTranscriptViewportWidth()
 				)
 			}
-			messengerRenderedText = (messengerRenderedText + "\n[SYSTEM]\n" + notice).trim()
+			componentRenderedText = (componentRenderedText + "\n[SYSTEM]\n" + notice).trim()
 		} else {
-			showTextView()
+			showTerminalTextView()
 			ChatStyledRenderer.appendSystemNotice(chatArea, notice, currentTheme())
 		}
 	}
@@ -654,7 +654,7 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 		return ChatRenderThemes.byName(themeComboBox.selectedItem as? String ?: ChatRenderThemes.terminalStyle.name)
 	}
 
-	private fun usesComponentChatRenderer(): Boolean {
+	private fun usesComponentRenderer(): Boolean {
 		return when (currentTheme().name) {
 			ChatRenderThemes.markdownStyle.name,
 			ChatRenderThemes.messengerStyle.name,
@@ -803,12 +803,12 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 	private fun applySearchHighlights() {
 		clearSearchHighlights()
 
-		if (usesComponentChatRenderer()) {
+		if (usesComponentRenderer()) {
 			val match = currentSearchMatches.getOrNull(currentSearchMatchIndex) ?: return
-			val blockRange = messengerBlockRanges.firstOrNull { range ->
+			val blockRange = componentBlockRanges.firstOrNull { range ->
 				match.start >= range.startOffset && match.start < range.endOffset
 			} ?: return
-			messengerSearchHighlightedComponent = blockRange.component
+			componentSearchHighlightedComponent = blockRange.component
 			blockRange.component.border = BorderFactory.createCompoundBorder(
 				BorderFactory.createLineBorder(Color(255, 213, 79), 2),
 				BorderFactory.createEmptyBorder(5, 4, 5, 4)
@@ -829,16 +829,16 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 		val highlighter = chatArea.highlighter
 		searchHighlightTags.forEach(highlighter::removeHighlight)
 		searchHighlightTags.clear()
-		messengerSearchHighlightedComponent?.let { component ->
+		componentSearchHighlightedComponent?.let { component ->
 			component.border = BorderFactory.createEmptyBorder(5, 4, 5, 4)
 			component.repaint()
 		}
-		messengerSearchHighlightedComponent = null
+		componentSearchHighlightedComponent = null
 	}
 
 	private fun scrollToSearchMatch(match: SearchMatch) {
-		if (usesComponentChatRenderer()) {
-			val blockRange = messengerBlockRanges.firstOrNull { range ->
+		if (usesComponentRenderer()) {
+			val blockRange = componentBlockRanges.firstOrNull { range ->
 				match.start >= range.startOffset && match.start < range.endOffset
 			} ?: return
 			blockRange.component.scrollRectToVisible(
@@ -853,8 +853,8 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 	}
 
 	private fun currentRenderedText(): String {
-		if (usesComponentChatRenderer()) {
-			return messengerRenderedText
+		if (usesComponentRenderer()) {
+			return componentRenderedText
 		}
 
 		val document = chatArea.document
@@ -868,7 +868,7 @@ private class WrappedTextPane : JTextPane() {
 	}
 }
 
-private class MessengerPanel : JPanel(), Scrollable {
+private class ComponentTranscriptPanel : JPanel(), Scrollable {
 	override fun getPreferredScrollableViewportSize(): Dimension {
 		return preferredSize
 	}

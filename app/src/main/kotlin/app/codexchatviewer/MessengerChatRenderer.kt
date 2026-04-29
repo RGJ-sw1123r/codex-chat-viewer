@@ -21,17 +21,17 @@ import javax.swing.JLabel
 import javax.swing.JPanel
 import javax.swing.JTextArea
 
-data class MessengerBlockRange(
+data class ComponentBlockRange(
 	val blockIndex: Int,
 	val startOffset: Int,
 	val endOffset: Int,
 	val component: JComponent
 )
 
-data class MessengerRenderResult(
+data class ComponentRenderResult(
 	val transcriptText: String,
 	val headerRanges: List<TranscriptHeaderRange>,
-	val blockRanges: List<MessengerBlockRange>
+	val blockRanges: List<ComponentBlockRange>
 )
 
 private const val messengerSafeHorizontalPadding = 56
@@ -52,13 +52,13 @@ object MessengerChatRenderer {
 		viewportWidth: Int = 900,
 		collapsedBlockIndexes: Set<Int> = emptySet(),
 		onHeaderClicked: (Int) -> Unit = {}
-	): MessengerRenderResult {
+	): ComponentRenderResult {
 		configureContainer(container, theme)
 		val layoutWidths = MessengerLayoutWidths.fromViewportWidth(viewportWidth)
 
 		val transcript = StringBuilder()
 		val headerRanges = mutableListOf<TranscriptHeaderRange>()
-		val blockRanges = mutableListOf<MessengerBlockRange>()
+		val blockRanges = mutableListOf<ComponentBlockRange>()
 
 		appendTranscriptLine(transcript, "Codex Chat Viewer")
 		appendTranscriptLine(transcript, "")
@@ -70,7 +70,7 @@ object MessengerChatRenderer {
 			appendTranscriptLine(transcript, "Default theme: ${theme.name}")
 			addNoticeCard(container, "Ready.\nDefault theme: ${theme.name}", theme, layoutWidths)
 			finish(container)
-			return MessengerRenderResult(transcript.toString(), emptyList(), emptyList())
+			return ComponentRenderResult(transcript.toString(), emptyList(), emptyList())
 		}
 
 		appendTranscriptLine(transcript, "File: ${file.name}")
@@ -128,7 +128,7 @@ object MessengerChatRenderer {
 					onHeaderClicked = { onHeaderClicked(index) }
 				)
 				container.add(row)
-				blockRanges += MessengerBlockRange(index, blockStart, transcript.length, row)
+				blockRanges += ComponentBlockRange(index, blockStart, transcript.length, row)
 			}
 			appendTranscriptLine(transcript, "")
 			appendTranscriptLine(transcript, "")
@@ -151,7 +151,7 @@ object MessengerChatRenderer {
 		)
 
 		finish(container)
-		return MessengerRenderResult(transcript.toString().trimEnd(), headerRanges, blockRanges)
+		return ComponentRenderResult(transcript.toString().trimEnd(), headerRanges, blockRanges)
 	}
 
 	fun appendSystemNotice(container: JPanel, notice: String, theme: ChatRenderTheme, viewportWidth: Int = 900) {

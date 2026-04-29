@@ -40,14 +40,14 @@ object MarkdownDocumentRenderer {
 		viewportWidth: Int = 900,
 		collapsedBlockIndexes: Set<Int> = emptySet(),
 		onHeaderClicked: (Int) -> Unit = {}
-	): MessengerRenderResult {
+	): ComponentRenderResult {
 		configureContainer(container, theme)
 		val documentWidth = documentWidthFor(viewportWidth)
 		val document = createDocumentColumn(documentWidth, theme)
 
 		val transcript = StringBuilder()
 		val headerRanges = mutableListOf<TranscriptHeaderRange>()
-		val blockRanges = mutableListOf<MessengerBlockRange>()
+		val blockRanges = mutableListOf<ComponentBlockRange>()
 
 		appendTranscriptLine(transcript, "Codex Chat Viewer")
 		appendTranscriptLine(transcript, "")
@@ -59,7 +59,7 @@ object MarkdownDocumentRenderer {
 			appendTranscriptLine(transcript, "Default theme: ${theme.name}")
 			document.add(createNoticeSection("Ready.\nDefault theme: ${theme.name}", theme, documentWidth))
 			addDocument(container, document)
-			return MessengerRenderResult(transcript.toString(), emptyList(), emptyList())
+			return ComponentRenderResult(transcript.toString(), emptyList(), emptyList())
 		}
 
 		appendTranscriptLine(transcript, "File: ${file.name}")
@@ -109,7 +109,7 @@ object MarkdownDocumentRenderer {
 					onHeaderClicked = { onHeaderClicked(index) }
 				)
 				document.add(section)
-				blockRanges += MessengerBlockRange(index, blockStart, transcript.length, section)
+				blockRanges += ComponentBlockRange(index, blockStart, transcript.length, section)
 			}
 			appendTranscriptLine(transcript, "")
 			appendTranscriptLine(transcript, "")
@@ -133,7 +133,7 @@ object MarkdownDocumentRenderer {
 		)
 
 		addDocument(container, document)
-		return MessengerRenderResult(transcript.toString().trimEnd(), headerRanges, blockRanges)
+		return ComponentRenderResult(transcript.toString().trimEnd(), headerRanges, blockRanges)
 	}
 
 	fun appendSystemNotice(container: JPanel, notice: String, theme: ChatRenderTheme, viewportWidth: Int = 900) {
