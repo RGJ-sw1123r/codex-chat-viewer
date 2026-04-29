@@ -56,9 +56,7 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 	private var currentSelectedFile: File? = null
 	private var currentSessionId: String? = null
 	private var currentParsedChatLog: ParsedChatLog? = null
-	private var currentSearchQuery = ""
-	private var currentSearchMatches: List<SearchMatch> = emptyList()
-	private var currentSearchMatchIndex = -1
+	private val transcriptSearchController = TranscriptSearchController()
 	private val collapsedBlockIndexes = mutableSetOf<Int>()
 	private var transcriptHeaderRanges: List<TranscriptHeaderRange> = emptyList()
 	private val searchHighlightTags = mutableListOf<Any>()
@@ -634,86 +632,71 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 	}
 
 	private fun updateSearchQuery(query: String) {
-		currentSearchQuery = query
+		transcriptSearchController.updateQuery(query, currentRenderedText())
 		refreshSearchHighlights(preserveCurrentIndex = false)
 	}
 
 	private fun refreshSearchHighlights(preserveCurrentIndex: Boolean) {
 		clearSearchHighlights()
+		val searchState = transcriptSearchController.refreshMatches(
+			text = currentRenderedText(),
+			preserveCurrentIndex = preserveCurrentIndex
+		)
 
-		if (currentSearchQuery.isBlank()) {
-			currentSearchMatches = emptyList()
-			currentSearchMatchIndex = -1
+		if (searchState.query.isBlank()) {
 			searchPanel.updateMatchCount(null, null)
 			return
 		}
 
-		currentSearchMatches = findCaseInsensitiveMatches(currentRenderedText(), currentSearchQuery)
-		if (currentSearchMatches.isEmpty()) {
-			currentSearchMatchIndex = -1
+		if (searchState.matches.isEmpty()) {
 			searchPanel.updateMatchCount(null, 0)
 			return
 		}
 
-		currentSearchMatchIndex = if (preserveCurrentIndex && currentSearchMatchIndex >= 0) {
-			currentSearchMatchIndex.coerceAtMost(currentSearchMatches.lastIndex)
-		} else {
-			0
-		}
-
 		applySearchHighlights()
-		scrollToSearchMatch(currentSearchMatches[currentSearchMatchIndex])
-		searchPanel.updateMatchCount(currentSearchMatchIndex, currentSearchMatches.size)
+		scrollToSearchMatch(searchState.currentMatch() ?: return)
+		searchPanel.updateMatchCount(searchState.currentIndex, searchState.matches.size)
 	}
 
 	private fun goToNextSearchResult() {
-		moveToSearchResult(direction = 1)
+		moveToSearchResult(transcriptSearchController.moveToNextMatch())
 	}
 
 	private fun goToPreviousSearchResult() {
-		moveToSearchResult(direction = -1)
+		moveToSearchResult(transcriptSearchController.moveToPreviousMatch())
 	}
 
-	private fun moveToSearchResult(direction: Int) {
-		if (currentSearchMatches.isEmpty()) {
-			searchPanel.updateMatchCount(null, if (currentSearchQuery.isBlank()) null else 0)
+	private fun moveToSearchResult(searchState: SearchState) {
+		if (searchState.matches.isEmpty()) {
+			searchPanel.updateMatchCount(null, if (searchState.query.isBlank()) null else 0)
 			return
 		}
 
-		currentSearchMatchIndex = when {
-			currentSearchMatchIndex < 0 -> 0
-			direction > 0 -> (currentSearchMatchIndex + 1) % currentSearchMatches.size
-			else -> (currentSearchMatchIndex - 1 + currentSearchMatches.size) % currentSearchMatches.size
-		}
-
 		applySearchHighlights()
-		scrollToSearchMatch(currentSearchMatches[currentSearchMatchIndex])
-		searchPanel.updateMatchCount(currentSearchMatchIndex, currentSearchMatches.size)
+		scrollToSearchMatch(searchState.currentMatch() ?: return)
+		searchPanel.updateMatchCount(searchState.currentIndex, searchState.matches.size)
 	}
 
 	private fun closeSearch() {
 		clearSearchHighlights()
-		currentSearchQuery = ""
-		currentSearchMatches = emptyList()
-		currentSearchMatchIndex = -1
+		transcriptSearchController.clear()
 		searchPanel.updateMatchCount(null, null)
 	}
 
 	private fun resetSearchState() {
-		currentSearchQuery = ""
-		currentSearchMatches = emptyList()
-		currentSearchMatchIndex = -1
+		transcriptSearchController.clear()
 		clearSearchHighlights()
 		searchPanel.reset()
 	}
 
 	private fun applySearchHighlights() {
 		clearSearchHighlights()
+		val searchState = transcriptSearchController.currentState()
+		val currentMatch = searchState.currentMatch() ?: return
 
 		if (currentRenderMode() == TranscriptRenderMode.COMPONENT) {
-			val match = currentSearchMatches.getOrNull(currentSearchMatchIndex) ?: return
 			val blockRange = componentBlockRanges.firstOrNull { range ->
-				match.start >= range.startOffset && match.start < range.endOffset
+				currentMatch.start >= range.startOffset && currentMatch.start < range.endOffset
 			} ?: return
 			componentSearchHighlightedComponent = blockRange.component
 			blockRange.component.border = BorderFactory.createCompoundBorder(
@@ -725,8 +708,8 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 		}
 
 		val highlighter = chatArea.highlighter
-		currentSearchMatches.forEachIndexed { index, match ->
-			val painter = if (index == currentSearchMatchIndex) currentSearchResultPainter else searchResultPainter
+		searchState.matches.forEachIndexed { index, match ->
+			val painter = if (index == searchState.currentIndex) currentSearchResultPainter else searchResultPainter
 			val highlightTag = highlighter.addHighlight(match.start, match.end, painter)
 			searchHighlightTags += highlightTag
 		}
@@ -791,36 +774,4 @@ private class ComponentTranscriptPanel : JPanel(), Scrollable {
 	override fun getScrollableTracksViewportHeight(): Boolean {
 		return false
 	}
-}
-
-internal data class SearchMatch(
-	val start: Int,
-	val end: Int
-)
-
-internal fun findCaseInsensitiveMatches(text: String, query: String): List<SearchMatch> {
-	if (query.isBlank() || query.length > text.length) {
-		return emptyList()
-	}
-
-	val matches = mutableListOf<SearchMatch>()
-	var startIndex = 0
-	while (startIndex <= text.length - query.length) {
-		var matchIndex = -1
-		var candidateIndex = startIndex
-		while (candidateIndex <= text.length - query.length) {
-			if (text.regionMatches(candidateIndex, query, 0, query.length, ignoreCase = true)) {
-				matchIndex = candidateIndex
-				break
-			}
-			candidateIndex += 1
-		}
-		if (matchIndex < 0) {
-			break
-		}
-
-		matches += SearchMatch(matchIndex, matchIndex + query.length)
-		startIndex = matchIndex + query.length
-	}
-	return matches
 }
