@@ -41,7 +41,6 @@ import javax.swing.ScrollPaneConstants
 import javax.swing.filechooser.FileNameExtensionFilter
 import javax.swing.text.DefaultHighlighter
 import kotlin.math.abs
-import kotlin.math.roundToInt
 
 fun main() {
 	SwingUtilities.invokeLater {
@@ -77,6 +76,7 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 	private val componentTranscriptPanel = ComponentTranscriptPanel()
 	private val transcriptRenderController = TranscriptRenderController(chatArea, componentTranscriptPanel)
 	private val transcriptScrollPane = JScrollPane()
+	private val transcriptScrollController = TranscriptScrollController(transcriptScrollPane, chatArea)
 	private val showYouToggle = createFilterToggle("YOU", PersonFilterIcon())
 	private val showCodexToggle = createFilterToggle("CODEX", RobotFilterIcon())
 	private val showToolCallToggle = createFilterToggle("TOOL CALL", TerminalFilterIcon())
@@ -361,12 +361,10 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 	}
 
 	private fun renderCurrentChatPreservingViewport() {
-		val viewportAnchor = viewportAnchorForCurrentPosition()
+		val viewportAnchor = transcriptScrollController.captureViewportAnchor()
 		renderCurrentChat(scrollAnchor = null, resetCaretToTop = false)
-		if (viewportAnchor != null) {
-			SwingUtilities.invokeLater {
-				restoreViewportAnchor(viewportAnchor)
-			}
+		SwingUtilities.invokeLater {
+			transcriptScrollController.restoreViewportAnchor(viewportAnchor)
 		}
 	}
 
@@ -398,7 +396,7 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 		refreshSearchHighlights(preserveCurrentIndex = true)
 		if (scrollAnchor != null) {
 			SwingUtilities.invokeLater {
-				restoreScrollAnchor(scrollAnchor)
+				transcriptScrollController.restoreTextBlockAnchor(scrollAnchor, transcriptHeaderRanges)
 			}
 		}
 	}
@@ -443,9 +441,9 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 	}
 
 	private fun scrollTranscriptToTop() {
-		transcriptScrollPane.verticalScrollBar.value = 0
+		transcriptScrollController.scrollToTop()
 		SwingUtilities.invokeLater {
-			transcriptScrollPane.verticalScrollBar.value = 0
+			transcriptScrollController.scrollToTop()
 		}
 	}
 
@@ -465,37 +463,14 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 		transcriptScrollPane.verticalScrollBar.blockIncrement = 220
 	}
 
-	private fun viewportAnchorForCurrentPosition(): TranscriptViewportAnchor? {
-		val scrollBar = transcriptScrollPane.verticalScrollBar
-		val maxY = (scrollBar.maximum - scrollBar.visibleAmount).coerceAtLeast(0)
-		val scrollRatio = if (maxY > 0) {
-			scrollBar.value.toDouble() / maxY.toDouble()
-		} else {
-			0.0
-		}
-		return TranscriptViewportAnchor(scrollRatio = scrollRatio)
-	}
-
-	private fun restoreViewportAnchor(viewportAnchor: TranscriptViewportAnchor) {
-		val scrollBar = transcriptScrollPane.verticalScrollBar
-		val maxY = (scrollBar.maximum - scrollBar.visibleAmount).coerceAtLeast(0)
-		scrollBar.value = if (maxY > 0) {
-			(viewportAnchor.scrollRatio * maxY.toDouble()).roundToInt().coerceIn(0, maxY)
-		} else {
-			0
-		}
-	}
-
 	private fun toggleComponentBlock(blockIndex: Int) {
-		val viewportAnchor = viewportAnchorForCurrentPosition()
+		val viewportAnchor = transcriptScrollController.captureViewportAnchor()
 		if (!collapsedBlockIndexes.add(blockIndex)) {
 			collapsedBlockIndexes.remove(blockIndex)
 		}
 		renderCurrentChat(scrollAnchor = null, resetCaretToTop = false)
-		if (viewportAnchor != null) {
-			SwingUtilities.invokeLater {
-				restoreViewportAnchor(viewportAnchor)
-			}
+		SwingUtilities.invokeLater {
+			transcriptScrollController.restoreViewportAnchor(viewportAnchor)
 		}
 	}
 
@@ -510,7 +485,7 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 				val headerRange = transcriptHeaderRanges.firstOrNull { range ->
 					offset >= range.startOffset && offset < range.endOffset
 				} ?: return
-				val anchor = scrollAnchorFor(headerRange)
+				val anchor = transcriptScrollController.captureTextBlockAnchor(headerRange)
 
 				if (!collapsedBlockIndexes.add(headerRange.blockIndex)) {
 					collapsedBlockIndexes.remove(headerRange.blockIndex)
@@ -518,27 +493,6 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 				renderCurrentChat(scrollAnchor = anchor)
 			}
 		})
-	}
-
-	private fun scrollAnchorFor(headerRange: TranscriptHeaderRange): TranscriptScrollAnchor? {
-		val headerBounds = chatArea.modelToView2D(headerRange.startOffset)?.bounds ?: return null
-		return TranscriptScrollAnchor(
-			blockIndex = headerRange.blockIndex,
-			viewportYOffset = headerBounds.y - chatArea.visibleRect.y
-		)
-	}
-
-	private fun restoreScrollAnchor(scrollAnchor: TranscriptScrollAnchor?) {
-		if (scrollAnchor == null) {
-			return
-		}
-
-		val headerRange = transcriptHeaderRanges.firstOrNull { it.blockIndex == scrollAnchor.blockIndex } ?: return
-		val headerBounds = chatArea.modelToView2D(headerRange.startOffset)?.bounds ?: return
-		val viewport = chatArea.visibleRect
-		viewport.y = (headerBounds.y - scrollAnchor.viewportYOffset)
-			.coerceIn(0, (chatArea.height - viewport.height).coerceAtLeast(0))
-		chatArea.scrollRectToVisible(viewport)
 	}
 
 	private fun currentFilteredChatLog(): ParsedChatLog? {
@@ -794,15 +748,11 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 			val blockRange = componentBlockRanges.firstOrNull { range ->
 				match.start >= range.startOffset && match.start < range.endOffset
 			} ?: return
-			blockRange.component.scrollRectToVisible(
-				java.awt.Rectangle(0, 0, blockRange.component.width, blockRange.component.height)
-			)
+			transcriptScrollController.scrollComponentIntoView(blockRange.component)
 			return
 		}
 
-		chatArea.caretPosition = match.start
-		val bounds = chatArea.modelToView2D(match.start)?.bounds ?: return
-		chatArea.scrollRectToVisible(bounds)
+		transcriptScrollController.scrollTextOffsetIntoView(match.start)
 	}
 
 	private fun currentRenderedText(): String {
@@ -842,15 +792,6 @@ private class ComponentTranscriptPanel : JPanel(), Scrollable {
 		return false
 	}
 }
-
-private data class TranscriptScrollAnchor(
-	val blockIndex: Int,
-	val viewportYOffset: Int
-)
-
-private data class TranscriptViewportAnchor(
-	val scrollRatio: Double
-)
 
 internal data class SearchMatch(
 	val start: Int,
