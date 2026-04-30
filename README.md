@@ -1,6 +1,8 @@
 # Codex Chat Viewer
 
-A local-first desktop utility for reviewing OpenAI Codex CLI `rollout-*.jsonl` session logs.
+A local-first desktop **Codex CLI log viewer** for OpenAI Codex CLI `rollout-*.jsonl` session logs.
+
+Review, search, filter, and export local Codex CLI session logs without reading raw JSONL files.
 
 Codex Chat Viewer opens local Codex CLI JSONL logs, usually stored as `rollout-*.jsonl`, and turns Codex session logs into readable, filterable transcript views that you can also export to Markdown.
 
@@ -194,7 +196,7 @@ gradlew.bat run
 
 ## Manual Windows Release Zip
 
-Codex Chat Viewer is intended to ship as a portable Windows zip, not as a full installer.
+The portable Windows release artifact is built locally and uploaded manually to GitHub Releases.
 
 Build the local release artifact with:
 
@@ -250,17 +252,15 @@ This is a local-first utility.
 - Private local samples should remain ignored.
 - Exported files may contain private session content, so review them before sharing.
 
-## Release Direction
+## Release
 
-The intended release format is a portable Windows zip:
+Codex Chat Viewer is distributed as a portable Windows zip through GitHub Releases.
 
 ```text
 Download zip
 Extract folder
 Run Codex Chat Viewer.exe
 ```
-
-A full installer is not the first target. The portable zip should include a bundled runtime so Java does not need to be installed separately on the target machine.
 
 ## License
 
