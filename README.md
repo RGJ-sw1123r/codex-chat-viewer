@@ -6,8 +6,6 @@ Review, search, filter, and export local Codex CLI session logs without reading 
 
 Codex Chat Viewer opens local Codex CLI JSONL logs, usually stored as `rollout-*.jsonl`, and turns Codex session logs into readable, filterable transcript views that you can also export to Markdown.
 
-> Status: usable MVP
-
 ## Why?
 
 Codex CLI is useful, but its local JSONL session logs are not easy to review as-is.
