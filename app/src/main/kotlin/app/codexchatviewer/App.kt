@@ -18,6 +18,7 @@ import java.awt.event.KeyEvent
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.io.File
+import javax.imageio.ImageIO
 import javax.swing.AbstractAction
 import javax.swing.BorderFactory
 import javax.swing.Icon
@@ -97,6 +98,9 @@ class CodexChatViewerFrame : JFrame("Codex Chat Viewer") {
 
 	init {
 		defaultCloseOperation = EXIT_ON_CLOSE
+		CodexChatViewerFrame::class.java.getResource("app-icon.png")?.let { iconResource ->
+			iconImage = ImageIO.read(iconResource)
+		}
 		minimumSize = Dimension(900, 650)
 		setLocationRelativeTo(null)
 

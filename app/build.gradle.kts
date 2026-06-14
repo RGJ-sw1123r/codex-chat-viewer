@@ -55,12 +55,21 @@ application {
     mainClass = "app.codexchatviewer.AppKt"
 }
 
+tasks.processResources {
+    from("src/release/windows/app-icon-preview-256.png") {
+        into("app/codexchatviewer")
+        rename { "app-icon.png" }
+    }
+}
+
 val appDisplayName = "Codex Chat Viewer"
 val releaseArtifactName = "codex-chat-viewer-windows-x64.zip"
 val packageInputDir = layout.buildDirectory.dir("jpackage/input")
 val releaseOutputDir = layout.buildDirectory.dir("release/windows")
 val appImageDir = releaseOutputDir.map { it.dir("app-image") }
 val appImageRootDir = appImageDir.map { it.dir(appDisplayName) }
+val windowsAppIcon = layout.projectDirectory.file("src/release/windows/app-icon.ico")
+val windowsReleaseReadme = layout.projectDirectory.file("src/release/windows/README_FIRST_WINDOWS.txt")
 val javaToolchains = extensions.getByType(JavaToolchainService::class)
 
 fun candidateFile(path: String?): File? {
@@ -166,12 +175,14 @@ val createWindowsAppImage by tasks.registering(Exec::class) {
 
     dependsOn(prepareJpackageInput)
     inputs.dir(packageInputDir)
+    inputs.file(windowsAppIcon)
     outputs.dir(appImageRootDir)
 
     doFirst {
         val jpackageExecutable = resolveJpackageExecutable()
         val outputDir = appImageDir.get().asFile
         val inputDir = packageInputDir.get().asFile
+        val iconFile = windowsAppIcon.asFile
         val mainJar = tasks.named<Jar>("jar").get().archiveFileName.get()
 
         delete(outputDir)
@@ -184,7 +195,8 @@ val createWindowsAppImage by tasks.registering(Exec::class) {
             "--input", inputDir.absolutePath,
             "--dest", outputDir.absolutePath,
             "--main-jar", mainJar,
-            "--main-class", application.mainClass.get()
+            "--main-class", application.mainClass.get(),
+            "--icon", iconFile.absolutePath
         )
     }
 }
@@ -196,6 +208,9 @@ tasks.register<Zip>("packageWindowsReleaseZip") {
     dependsOn(createWindowsAppImage)
     isPreserveFileTimestamps = true
     from(appImageRootDir) {
+        into(appDisplayName)
+    }
+    from(windowsReleaseReadme) {
         into(appDisplayName)
     }
     destinationDirectory = releaseOutputDir

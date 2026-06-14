@@ -221,6 +221,14 @@ The zip is intended for manual upload to GitHub Releases after a local check. Th
 
 The source-code zip from GitHub's green `Code` button is not the same as the portable release zip. End users should download the release asset instead of the source archive.
 
+### Windows SmartScreen notice
+
+The Windows release zip includes `README_FIRST_WINDOWS.txt`.
+
+This file explains why Windows SmartScreen may show a warning for this unsigned portable app, and reminds users to download Codex Chat Viewer only from the official GitHub Releases page.
+
+`docs/WINDOWS_RELEASE_NOTE.md` is a short document intended to be pasted into the GitHub Release notes.
+
 ## Development Notes
 
 Codex Chat Viewer reads local Codex CLI session logs from paths such as:
