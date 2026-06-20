@@ -1,5 +1,9 @@
 # Codex Chat Viewer
 
+> **Status:** Codex Chat Viewer is no longer actively updated.
+>
+> This repository remains available as the earlier Kotlin/Swing implementation for reading local Codex CLI session logs. A newer successor has been released as [Codex JSONL Observatory](https://github.com/RGJ-sw1123r/codex-jsonl-observatory), a Rust/Tauri/Svelte desktop tool that reads Codex CLI JSONL sessions and exports versionable worklog bundles.
+
 A local-first desktop **Codex CLI log viewer** for OpenAI Codex CLI `rollout-*.jsonl` session logs.
 
 Review, search, filter, and export local Codex CLI session logs without reading raw JSONL files.
@@ -115,11 +119,11 @@ The app currently focuses on:
 - Opens Windows File Explorer with the exported Markdown file selected after export
 - Portable Windows zip build task
 
-### Planned
+### Successor
 
-- Live service support for active Codex sessions:
-  - detect updates from the currently opened JSONL session file and append newly parsed entries to the current transcript
-  - or provide a separate live file mode so live parsing can stay independent from the static viewer flow
+Codex Chat Viewer is kept as the earlier Kotlin/Swing implementation.
+
+The current successor is [Codex JSONL Observatory](https://github.com/RGJ-sw1123r/codex-jsonl-observatory), which continues the local Codex session-reading direction and extends it with versionable worklog bundle export.
 
 ## Markdown Export
 
